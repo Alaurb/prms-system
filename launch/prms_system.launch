@@ -1,0 +1,13 @@
+<launch>
+  <arg name="system_config" default="$(find prms_bringup)/../../../config/system.yaml" />
+  <arg name="topology_config" default="$(find prms_bringup)/../../../config/topology.yaml" />
+  <arg name="perception_config" default="$(find prms_bringup)/../../../config/perception.yaml" />
+
+  <rosparam command="load" file="$(arg system_config)" />
+  <rosparam command="load" file="$(arg topology_config)" ns="topology" />
+  <rosparam command="load" file="$(arg perception_config)" ns="perception" />
+
+  <node pkg="prms_topology" type="topology_path_publisher.py" name="topology_path_publisher" output="screen" />
+  <node pkg="prms_perception_bridge" type="prms_csv_bridge.py" name="prms_csv_bridge" output="screen" />
+  <node pkg="prms_fusion" type="maturity_fusion_node.py" name="maturity_fusion_node" output="screen" />
+</launch>

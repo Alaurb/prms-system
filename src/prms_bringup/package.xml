@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>prms_bringup</name>
+  <version>0.1.0</version>
+  <description>Launch and configuration package for the PRMS system.</description>
+  <maintainer email="maintainer@example.com">PRMS Maintainer</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>prms_fusion</depend>
+  <depend>prms_perception_bridge</depend>
+  <depend>prms_topology</depend>
+</package>
+

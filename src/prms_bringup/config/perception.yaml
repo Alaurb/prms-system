@@ -1,0 +1,16 @@
+prms:
+  mode: offline_or_replay
+  detections_csv: ../third_party/prms/demo/detections.csv
+  class_names:
+    - immature
+    - green_mature
+    - discoloration
+    - mature
+
+image:
+  panorama_format: equirectangular_2_to_1
+  cube_faces:
+    - left
+    - right
+  face_fov_deg: 90.0
+

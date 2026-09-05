@@ -1,0 +1,18 @@
+frames:
+  global: map
+  robot_base: body
+  planar_base: body_2d
+  panoramic_camera: panoramic_camera
+
+topics:
+  topology_path: /prms/topology/global_path
+  waypoint_goal: /move_base_simple/goal
+  detections: /prms/perception/detections
+  fused_observations: /prms/fusion/observations
+
+fusion:
+  max_time_offset_s: 0.05
+  row_offset_m: 1.15
+  camera_height_m: 1.15
+  require_measured_range: false
+

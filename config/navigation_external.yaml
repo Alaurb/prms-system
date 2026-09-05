@@ -1,0 +1,33 @@
+nexte_sentry_nav:
+  source_dir: third_party/NEXTE_Sentry_Nav_src
+  tested_revision: 5531ed2
+  ros_distro: noetic
+  ubuntu_version: "20.04"
+
+packages:
+  mapping:
+    package: fast_lio
+    launch: sentry_slam/FAST_LIO/launch/mapping_mid360.launch
+  localization:
+    package: fast_lio_localization
+    launch: sentry_slam/FAST_LIO_LOCALIZATION/launch/localization_MID360.launch
+  move_base:
+    package: sentry_nav
+    launch: sentry_nav/launch/sentry_movebase.launch
+    remaps:
+      /map: prior_map
+      /odom: Odometry
+  velocity_smoothing:
+    package: velocity_smoother_ema
+    launch: sentry_tools/velocity_smoother_ema/launch/velocity_smoother_ema.launch
+  serial_bridge:
+    package: sentry_serial
+    launch: sentry_comm/sentry_serial/launch/sentry_serial.launch
+    default_port: /dev/ttyACM0
+
+prms_additions:
+  topology_path_topic: /prms/topology/global_path
+  waypoint_goal_topic: /move_base_simple/goal
+  maturity_detection_topic: /prms/perception/detections
+  fused_observation_topic: /prms/fusion/observations
+

@@ -1,7 +1,7 @@
 <launch>
-  <arg name="system_config" default="$(find prms_bringup)/../../../config/system.yaml" />
-  <arg name="topology_config" default="$(find prms_bringup)/../../../config/topology.yaml" />
-  <arg name="perception_config" default="$(find prms_bringup)/../../../config/perception.yaml" />
+  <arg name="system_config" default="$(find prms_bringup)/config/system.yaml" />
+  <arg name="topology_config" default="$(find prms_bringup)/config/topology.yaml" />
+  <arg name="perception_config" default="$(find prms_bringup)/config/perception.yaml" />
 
   <rosparam command="load" file="$(arg system_config)" />
   <rosparam command="load" file="$(arg topology_config)" ns="topology" />

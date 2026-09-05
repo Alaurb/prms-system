@@ -32,8 +32,9 @@ This scaffold provides:
 - A perception bridge interface for publishing PRMS detection results.
 - A fusion node skeleton for synchronizing detections with robot poses.
 - Example configuration files and launch wiring.
+- A cloned local navigation dependency under `third_party/NEXTE_Sentry_Nav_src` for interface inspection and later ROS workspace integration.
 
-The next implementation step is to place or submodule the navigation and perception repositories under `third_party/`, then bind their topics and outputs to the interfaces defined here.
+The next implementation step is to place or submodule the perception repository under `third_party/`, then bind the online detector and the cloned navigation stack to the interfaces defined here.
 
 ## Quick Start
 
@@ -62,3 +63,5 @@ The system expects these external modules to be connected in later steps:
 
 Keep large raw data, ROS bags, trained weights, and generated outputs outside Git unless they are intentionally released as a minimal reproducibility dataset.
 
+See `docs/navigation_integration.md` for the inspected navigation package layout and topic contracts.
+See `docs/setup_status.md` for the current Windows, GitHub, WSL, and ROS setup status.

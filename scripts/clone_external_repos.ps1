@@ -8,9 +8,9 @@ $RepoRoot = Split-Path -Parent $PSScriptRoot
 $ThirdParty = Join-Path $RepoRoot "third_party"
 New-Item -ItemType Directory -Force -Path $ThirdParty | Out-Null
 
-$NavDir = Join-Path $ThirdParty "NEXTE_Sentry_Nav"
+$NavDir = Join-Path $ThirdParty "NEXTE_Sentry_Nav_src"
 if (-not (Test-Path -LiteralPath $NavDir)) {
-    git clone $NavUrl $NavDir
+    git clone --depth 1 $NavUrl $NavDir
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to clone navigation repository: $NavUrl"
     }

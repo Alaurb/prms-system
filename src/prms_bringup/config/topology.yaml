@@ -1,0 +1,19 @@
+map_frame: map
+default_route: demo_row_route
+
+routes:
+  demo_row_route:
+    description: Example single-row inspection route.
+    publish_waypoint_goals: false
+    waypoints:
+      - {id: row_702_entry, x: 0.0, y: 0.0, yaw: 0.0}
+      - {id: row_702_mid, x: 3.0, y: 0.0, yaw: 0.0}
+      - {id: row_702_exit, x: 6.0, y: 0.0, yaw: 0.0}
+
+rows:
+  - id: row_702_714
+    left_crop_y_m: 1.15
+    right_crop_y_m: -1.15
+    start_x_m: 0.0
+    end_x_m: 6.0
+

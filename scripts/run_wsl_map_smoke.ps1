@@ -13,5 +13,5 @@ if ($RepoRoot -match "^([A-Za-z]):\\(.*)$") {
     throw "Unsupported repository path: $RepoRoot"
 }
 
-$Script = "$LinuxRepoRoot/scripts/run_smoke.sh"
+$Script = "$LinuxRepoRoot/scripts/run_map_smoke.sh"
 wsl.exe -d $Distro -- bash $Script $Workspace $LinuxRepoRoot

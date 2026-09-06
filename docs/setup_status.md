@@ -6,13 +6,8 @@ Last checked: 2026-09-06
 
 - Git: available.
 - Python: available.
-- GitHub CLI: available as a portable executable.
-
-```text
-C:\Users\10335\OneDrive\文档\格式修改\tools\gh\bin\gh.exe
-```
-
-GitHub authentication is active for account `Alaurb`.
+- GitHub CLI: available.
+- GitHub authentication: active on the development machine.
 
 ## GitHub Repository
 
@@ -97,4 +92,10 @@ Observed success line:
 
 ```text
 PRMS simulation smoke passed: path_poses=3 odom_samples=8 travelled_m=0.560
+```
+
+The reference-map smoke script also passed:
+
+```text
+PRMS map smoke passed: map=680x130 resolution=0.050 path_poses=3 travelled_m=0.560
 ```

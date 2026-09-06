@@ -25,6 +25,8 @@ PRMS simulation smoke passed: path_poses=3 odom_samples>=3 travelled_m>=0.5
 
 This layer verifies the public ROS interface baseline. It does not prove greenhouse navigation performance.
 
+An additional reference-map launch loads `examples/maps/greenhouse_reference.yaml` through `map_server` and checks that `/map`, `/prms/topology/global_path`, and `Odometry` are all active.
+
 ## Layer 2: Navigation Stack Integration
 
 Purpose:
@@ -71,4 +73,3 @@ Recommended outputs:
 - 3D projection error and fruit association accuracy;
 - runtime throughput for online or offline operation;
 - minimal dataset with raw inputs, processed outputs, metadata, and scripts.
-

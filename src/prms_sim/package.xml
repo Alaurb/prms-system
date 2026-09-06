@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>prms_sim</name>
+  <version>0.1.0</version>
+  <description>Lightweight reproducibility simulation for PRMS navigation and localization interfaces.</description>
+  <maintainer email="maintainer@example.com">PRMS Maintainer</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>rospy</depend>
+  <depend>tf2_ros</depend>
+</package>
+

@@ -33,6 +33,7 @@ This scaffold provides:
 - A fusion node skeleton for synchronizing detections with robot poses.
 - Example configuration files and launch wiring.
 - A cloned local navigation dependency under `third_party/NEXTE_Sentry_Nav_src` for interface inspection and later ROS workspace integration.
+- A lightweight ROS smoke simulation for reproducible topology and localization checks.
 
 The next implementation step is to place or submodule the perception repository under `third_party/`, then bind the online detector and the cloned navigation stack to the interfaces defined here.
 
@@ -54,6 +55,24 @@ source devel/setup.bash
 roslaunch prms_bringup prms_system.launch
 ```
 
+Run the lightweight navigation/localization smoke simulation:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\run_wsl_smoke.ps1
+```
+
+Or run it inside Ubuntu-20.04 manually:
+
+```bash
+source /opt/ros/noetic/setup.bash
+cd ~/prms_ws
+catkin_make --only-pkg-with-deps prms_bringup prms_fusion prms_msgs prms_perception_bridge prms_topology prms_sim
+source devel/setup.bash
+roslaunch --skip-log-check prms_bringup simulation_smoke.launch
+```
+
+The smoke simulation publishes a topology path, simulated `map -> body` TF, and `Odometry`. It exits successfully after the simulated robot has moved along the route.
+
 ## External Components
 
 The system expects these external modules to be connected in later steps:
@@ -65,3 +84,4 @@ Keep large raw data, ROS bags, trained weights, and generated outputs outside Gi
 
 See `docs/navigation_integration.md` for the inspected navigation package layout and topic contracts.
 See `docs/setup_status.md` for the current Windows, GitHub, WSL, and ROS setup status.
+See `docs/reproducibility_plan.md` for the staged validation plan and the additional data needed for reviewer-facing evidence.

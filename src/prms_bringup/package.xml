@@ -9,6 +9,6 @@
   <buildtool_depend>catkin</buildtool_depend>
   <depend>prms_fusion</depend>
   <depend>prms_perception_bridge</depend>
+  <depend>prms_sim</depend>
   <depend>prms_topology</depend>
 </package>
-

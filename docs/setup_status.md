@@ -81,3 +81,20 @@ Detected nodes:
 /maturity_fusion_node
 ```
 
+## Smoke Simulation
+
+The lightweight simulation was added and checked in Ubuntu-20.04.
+
+Command:
+
+```bash
+source /opt/ros/noetic/setup.bash
+source ~/prms_ws/devel/setup.bash
+powershell -ExecutionPolicy Bypass -File scripts\run_wsl_smoke.ps1
+```
+
+Observed success line:
+
+```text
+PRMS simulation smoke passed: path_poses=3 odom_samples=8 travelled_m=0.560
+```

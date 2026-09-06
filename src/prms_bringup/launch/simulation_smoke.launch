@@ -1,0 +1,24 @@
+<launch>
+  <arg name="system_config" default="$(find prms_bringup)/config/system.yaml" />
+  <arg name="topology_config" default="$(find prms_bringup)/config/topology.yaml" />
+
+  <rosparam command="load" file="$(arg system_config)" />
+  <rosparam command="load" file="$(arg topology_config)" ns="topology" />
+
+  <node pkg="prms_topology" type="topology_path_publisher.py" name="topology_path_publisher" output="screen">
+    <param name="rate" value="2.0" />
+  </node>
+
+  <node pkg="prms_sim" type="simulated_localization_node.py" name="simulated_localization_node" output="screen">
+    <param name="rate" value="10.0" />
+    <param name="speed_mps" value="0.8" />
+    <param name="odom_topic" value="Odometry" />
+  </node>
+
+  <node pkg="prms_sim" type="route_smoke_validator.py" name="route_smoke_validator" output="screen" required="true">
+    <param name="timeout_s" value="12.0" />
+    <param name="min_distance_m" value="0.5" />
+    <param name="odom_topic" value="Odometry" />
+  </node>
+</launch>
+

@@ -3,12 +3,13 @@ set -eo pipefail
 
 WORKSPACE="${1:-$HOME/prms_ws}"
 REPO_ROOT="${2:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+TRACE_PATH="${TRACE_PATH:-$REPO_ROOT/outputs/nav_smoke/latest_trace.json}"
 
 export ROS_MASTER_URI=http://127.0.0.1:11311
 export ROS_HOSTNAME=127.0.0.1
 export ROS_LOG_DIR=/tmp/prms_ros_logs
 
-mkdir -p "$WORKSPACE/src" "$ROS_LOG_DIR"
+mkdir -p "$WORKSPACE/src" "$ROS_LOG_DIR" "$(dirname "$TRACE_PATH")"
 cp -r "$REPO_ROOT/src/prms_bringup" "$WORKSPACE/src/"
 cp -r "$REPO_ROOT/src/prms_fusion" "$WORKSPACE/src/"
 cp -r "$REPO_ROOT/src/prms_msgs" "$WORKSPACE/src/"
@@ -57,5 +58,5 @@ rosrun prms_sim cmd_vel_odom_simulator.py _rate:=20.0 _odom_topic:=Odometry _cmd
 ODOM_PID=$!
 rosrun prms_sim simple_path_follower.py _rate:=10.0 _odom_topic:=Odometry _cmd_vel_topic:=cmd_vel _max_linear_mps:=0.55 _max_angular_rps:=1.2 _goal_tolerance_m:=0.15 &
 FOLLOWER_PID=$!
-rosrun prms_sim closed_loop_nav_validator.py _timeout_s:=35.0 _goal_tolerance_m:=0.2 _odom_topic:=Odometry _cmd_vel_topic:=cmd_vel
-
+rosrun prms_sim closed_loop_nav_validator.py _timeout_s:=35.0 _goal_tolerance_m:=0.2 _odom_topic:=Odometry _cmd_vel_topic:=cmd_vel "_trace_output:=$TRACE_PATH"
+echo "Trace written to: $TRACE_PATH"

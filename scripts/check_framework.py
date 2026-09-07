@@ -23,6 +23,8 @@ REQUIRED = [
     "scripts/run_smoke.sh",
     "scripts/run_wsl_map_smoke.ps1",
     "scripts/run_map_smoke.sh",
+    "scripts/run_wsl_closed_loop_nav_smoke.ps1",
+    "scripts/run_closed_loop_nav_smoke.sh",
     "launch/prms_system.launch",
     "src/prms_bringup/config/system.yaml",
     "src/prms_bringup/config/topology.yaml",
@@ -33,14 +35,18 @@ REQUIRED = [
     "src/prms_bringup/launch/prms_system.launch",
     "src/prms_bringup/launch/simulation_smoke.launch",
     "src/prms_bringup/launch/simulation_map_smoke.launch",
+    "src/prms_bringup/launch/closed_loop_nav_smoke.launch",
     "src/prms_msgs/msg/MaturityDetection.msg",
     "src/prms_msgs/msg/MaturityObservationArray.msg",
     "src/prms_topology/scripts/topology_path_publisher.py",
     "src/prms_perception_bridge/scripts/prms_csv_bridge.py",
     "src/prms_fusion/scripts/maturity_fusion_node.py",
     "src/prms_sim/scripts/simulated_localization_node.py",
+    "src/prms_sim/scripts/cmd_vel_odom_simulator.py",
+    "src/prms_sim/scripts/simple_path_follower.py",
     "src/prms_sim/scripts/route_smoke_validator.py",
     "src/prms_sim/scripts/map_smoke_validator.py",
+    "src/prms_sim/scripts/closed_loop_nav_validator.py",
 ]
 
 

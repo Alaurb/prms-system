@@ -1,0 +1,34 @@
+<launch>
+  <arg name="system_config" default="$(find prms_bringup)/config/system.yaml" />
+  <arg name="topology_config" default="$(find prms_bringup)/config/topology.yaml" />
+
+  <rosparam command="load" file="$(arg system_config)" />
+  <rosparam command="load" file="$(arg topology_config)" ns="topology" />
+
+  <node pkg="prms_topology" type="topology_path_publisher.py" name="topology_path_publisher" output="screen">
+    <param name="rate" value="2.0" />
+  </node>
+
+  <node pkg="prms_sim" type="cmd_vel_odom_simulator.py" name="cmd_vel_odom_simulator" output="screen">
+    <param name="rate" value="20.0" />
+    <param name="odom_topic" value="Odometry" />
+    <param name="cmd_vel_topic" value="cmd_vel" />
+  </node>
+
+  <node pkg="prms_sim" type="simple_path_follower.py" name="simple_path_follower" output="screen">
+    <param name="rate" value="10.0" />
+    <param name="odom_topic" value="Odometry" />
+    <param name="cmd_vel_topic" value="cmd_vel" />
+    <param name="max_linear_mps" value="0.55" />
+    <param name="max_angular_rps" value="1.2" />
+    <param name="goal_tolerance_m" value="0.15" />
+  </node>
+
+  <node pkg="prms_sim" type="closed_loop_nav_validator.py" name="closed_loop_nav_validator" output="screen" required="true">
+    <param name="timeout_s" value="35.0" />
+    <param name="goal_tolerance_m" value="0.2" />
+    <param name="odom_topic" value="Odometry" />
+    <param name="cmd_vel_topic" value="cmd_vel" />
+  </node>
+</launch>
+

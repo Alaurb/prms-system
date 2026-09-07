@@ -99,3 +99,9 @@ The reference-map smoke script also passed:
 ```text
 PRMS map smoke passed: map=680x130 resolution=0.050 path_poses=3 travelled_m=0.560
 ```
+
+The closed-loop navigation smoke script also passed:
+
+```text
+PRMS closed-loop navigation smoke passed: path_poses=3 cmd_samples=88 final_error_m=0.195
+```

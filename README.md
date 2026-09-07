@@ -91,6 +91,20 @@ roslaunch --skip-log-check prms_bringup simulation_map_smoke.launch
 
 The reference map is provided as a ROS occupancy grid under `examples/maps/`.
 
+Run the closed-loop navigation smoke simulation:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\run_wsl_closed_loop_nav_smoke.ps1
+```
+
+This checks a minimal navigation loop: topology path -> path follower -> `cmd_vel` -> odometry simulator -> final-goal validator.
+
+Expected success line:
+
+```text
+PRMS closed-loop navigation smoke passed: path_poses=3 cmd_samples>=5 final_error_m<=0.2
+```
+
 ## External Components
 
 The system expects these external modules to be connected in later steps:

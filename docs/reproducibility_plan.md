@@ -27,6 +27,14 @@ This layer verifies the public ROS interface baseline. It does not prove greenho
 
 An additional reference-map launch loads `examples/maps/greenhouse_reference.yaml` through `map_server` and checks that `/map`, `/prms/topology/global_path`, and `Odometry` are all active.
 
+A closed-loop navigation smoke test is also included. It replaces full `move_base` with a tiny path follower and a `cmd_vel` odometry simulator, then verifies that the simulated robot reaches the final route waypoint. This is the recommended minimal navigation check for the public PRMS repository.
+
+Observed local result:
+
+```text
+PRMS closed-loop navigation smoke passed: path_poses=3 cmd_samples=88 final_error_m=0.195
+```
+
 ## Layer 2: Navigation Stack Integration
 
 Purpose:

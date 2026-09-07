@@ -11,6 +11,7 @@ REQUIRED = [
     "docs/navigation_integration.md",
     "docs/setup_status.md",
     "docs/reproducibility_plan.md",
+    "docs/handoff_5_6_terra.md",
     "docs/reference_map.md",
     "docs/系统实现思路.md",
     "config/system.yaml",

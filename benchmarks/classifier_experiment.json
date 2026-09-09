@@ -1,0 +1,25 @@
+{
+  "classifier_preparation": {
+    "source": "data/training/classifier",
+    "target": "work/optimization/classifier_clean_v1",
+    "removed_train_validation_duplicate": "train/other/tomato_025.jpg",
+    "oversampling": "Each of the two remaining unique other-class training images is repeated five times; stochastic augmentation is applied during training.",
+    "counts": {
+      "train": {
+        "discoloration": 33,
+        "green": 42,
+        "immature": 31,
+        "maturity": 26,
+        "other": 12
+      },
+      "val": {
+        "discoloration": 11,
+        "green": 14,
+        "immature": 10,
+        "maturity": 6,
+        "other": 1
+      }
+    }
+  },
+  "classifier_model": "work/optimization/models/tomato_ripeness_classifier_optimized.pt"
+}

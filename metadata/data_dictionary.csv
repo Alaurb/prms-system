@@ -1,0 +1,66 @@
+resource,field_or_format,definition,unit_or_range
+data/panoramas/,JPEG 5760x2880,2:1 equirectangular 360-degree panorama,RGB 8-bit
+models/tomato_detector.pt,PyTorch weights,Accepted optimized single-class tomato detector,validation mAP50-95 0.339
+models/tomato_ripeness_classifier.pt,PyTorch weights,Retained original five-class ripeness classifier,validation top-1 0.810
+demo/detections.csv,frame,Source panorama filename,string
+demo/detections.csv,side,Cubemap side view,left or right
+demo/detections.csv,class_name,Normalized predicted ripeness class,immature/green_mature/discoloration/mature
+demo/detections.csv,confidence,Combined detector and classifier confidence,"[0,1]"
+demo/detections.csv,detector,Inference pipeline identifier,string
+demo/detections.csv,x,Projected greenhouse X coordinate,metres
+demo/detections.csv,y,Projected greenhouse Y coordinate,metres
+demo/detections.csv,z,Estimated tomato height,metres
+demo/detections.csv,map_px,Horizontal coordinate on the map image,pixels
+demo/detections.csv,map_py,Vertical coordinate on the map image,pixels
+demo/detections.csv,bbox_x1,Left edge of the detection box in the side view,pixels
+demo/detections.csv,bbox_y1,Top edge of the detection box in the side view,pixels
+demo/detections.csv,bbox_x2,Right edge of the detection box in the side view,pixels
+demo/detections.csv,bbox_y2,Bottom edge of the detection box in the side view,pixels
+demo/detections.csv,view_width,Side-view image width,pixels
+demo/detections.csv,view_height,Side-view image height,pixels
+demo/detections.csv,annotated_image,Relative path to the corresponding annotated side view,string
+demo/detections.csv,position_source,Whether XYZ uses measured radial range or an assumed row plane,measured_radial_range/assumed_row_plane
+demo/detections.csv,track_id,Within-pass association candidate or unassociated observation identifier,T000001 and subsequent IDs
+demo/tracks.json,status,Association evidence level,association_candidate/unassociated_observation
+demo/tracks.json,observations,Number of observations in the within-pass candidate,count
+demo/association_links.json,observation_index,Zero-based index within a complete frame including both sides,integer
+demo/association_links.json,matched_previous,Whether this observation linked to an earlier candidate,boolean
+demo/rejected_observations.json,reason,Range quality or nearest-row test failure,invalid_range/outside_nearest_row_band
+runtime.json,total_s,Offline wall time including model loading projection detection and file output,seconds
+runtime.json,frames_per_second,Processed panorama count divided by total wall time,frames/second
+runtime.json,frame_timings,Per-frame projection and detection plus IO wall times,seconds
+demo/plants.csv,plant_id,Observation proxy identifier formed from panorama frame and side,P<frame>-L/R
+demo/plants.csv,frame,Source panorama filename,string
+demo/plants.csv,side,Observed row side,left or right
+demo/plants.csv,x,Column X coordinate,metres
+demo/plants.csv,y,Column Y coordinate,metres
+demo/plants.csv,total,Number of detected tomatoes assigned to the column,count
+demo/plants.csv,mature,Number of mature detections,count
+demo/plants.csv,discoloration,Number of discoloration-stage detections,count
+demo/plants.csv,green_mature,Number of green-mature detections,count
+demo/plants.csv,immature,Number of immature detections,count
+demo/plants.csv,assignment_source,Method used to define the observation column,frame_side_proxy
+demo/trajectory.csv,frame,Source panorama filename,string
+demo/trajectory.csv,x,Camera X coordinate,metres
+demo/trajectory.csv,y,Camera Y coordinate,metres
+demo/trajectory.csv,z,Camera height,metres
+demo/trajectory.csv,yaw,Camera heading,radians
+demo/trajectory.csv,map_px,Horizontal camera coordinate on the map image,pixels
+demo/trajectory.csv,map_py,Vertical camera coordinate on the map image,pixels
+demo/trajectory.csv,source,Pose provenance,synthetic_map_path or measured_pose_csv
+demo/trajectory.csv,route,Route identifier,string
+demo/summary.json,processed_frames,Number of processed panoramas,count
+demo/summary.json,trajectory_points,Number of mapped camera poses,count
+demo/summary.json,detections,Number of predicted tomatoes,count
+demo/summary.json,plant_columns,Number of frame-side observation columns,count
+demo/summary.json,plants_with_detections,Number of columns containing at least one prediction,count
+demo/summary.json,class_counts,Prediction count by normalized ripeness class,count
+demo/summary.json,pose_source,Trajectory provenance,string
+demo/summary.json,plant_assignment,Observation-column assignment method,string
+demo/summary.json,limitations,Known interpretation constraints,array of strings
+metadata/source_audit.json,detector_dataset,Detector split sizes label counts and duplicate checks,structured object
+metadata/source_audit.json,classifier_dataset,Classifier class counts and duplicate checks,structured object
+metadata/source_audit.json,privacy_and_image_integrity,Image dimensions readability EXIF and filename privacy checks,structured object
+MANIFEST.csv,path,Path relative to the package root,string
+MANIFEST.csv,size_bytes,Uncompressed file size,bytes
+MANIFEST.csv,sha256,SHA-256 digest of the uncompressed file,64 hexadecimal characters

@@ -1,129 +1,56 @@
-# PRMS System
+# PRMS: Panoramic Ripeness Detection and Spatial Mapping
 
-PRMS System is an integrated greenhouse inspection framework for a wheel-legged quadruped robot. It combines LiDAR-based navigation, topological route guidance, panoramic maturity recognition, and spatio-temporal fusion into one reproducible ROS-oriented project.
+This repository accompanies *Ripeness Monitoring in Open-Facility Environments Using a Quadruped Robot and Panoramic AI Recognition*. It provides offline panorama projection, two-stage tomato detection/ripeness classification, and spatial observation visualization. Navigation, robot control, SLAM and gait switching are outside its scope. External camera poses and registered ranges can be supplied through the [data interfaces](docs/interfaces.md).
 
-The first code version is a system scaffold. It is designed to connect two implementation sources:
+The [original preprint](docs/paper/preprints202608.0999.v1.pdf) is retained as a historical reference. Revised manuscript source is in [docs/paper/root.tex](docs/paper/root.tex); figures and the journal template remain in the author's manuscript package.
 
-- Navigation method: FAST-LIO / localization / move_base workflow inspired by `NEXTE_Sentry_Nav`.
-- Recognition method: panoramic cube projection, YOLO maturity recognition, and 3D mapping from the existing PRMS repository.
+## Run the supplied example
 
-## Repository Layout
-
-```text
-prms-system/
-  config/                         Runtime parameters and example topology map
-  docs/                           Architecture and interface notes
-  launch/                         System launch entry points
-  scripts/                        Developer helper scripts
-  src/
-    prms_bringup/                 System-level launch package
-    prms_fusion/                  Time alignment and spatial fusion node
-    prms_msgs/                    ROS message definitions
-    prms_perception_bridge/       Bridge from PRMS detection outputs to ROS
-    prms_topology/                Topological route publisher and waypoint guide
-```
-
-## Current Scope
-
-This scaffold provides:
-
-- ROS package skeletons for navigation guidance, perception bridging, and fusion.
-- A topology route publisher that converts row/waypoint topology into `nav_msgs/Path`.
-- A perception bridge interface for publishing PRMS detection results.
-- A fusion node skeleton for synchronizing detections with robot poses.
-- Example configuration files and launch wiring.
-- A cloned local navigation dependency under `third_party/NEXTE_Sentry_Nav_src` for interface inspection and later ROS workspace integration.
-- A lightweight ROS smoke simulation for reproducible topology and localization checks.
-
-The next implementation step is to place or submodule the perception repository under `third_party/`, then bind the online detector and the cloned navigation stack to the interfaces defined here.
-
-## Quick Start
-
-```powershell
-git clone https://github.com/Alaurb/prms-system.git
-cd prms-system
-```
-
-For ROS Noetic on Ubuntu 20.04:
+Use Python 3.12 and a virtual environment:
 
 ```bash
-mkdir -p ~/catkin_ws/src
-cp -r prms-system/src/* ~/catkin_ws/src/
-cd ~/catkin_ws
-catkin_make
-source devel/setup.bash
-roslaunch prms_bringup prms_system.launch
+python -m venv .venv
+# Activate .venv using your platform's activation command.
+python -m pip install -r requirements.txt
+python scripts/verify_dataset.py
+python scripts/replay_observations.py --source demo --output outputs/replay
+python -m unittest discover -s tests -v
 ```
 
-Run the lightweight navigation/localization smoke simulation:
+Open `outputs/replay/index.html` locally. It is an offline interactive map with the saved annotated views. Replay does not run YOLO again. Expected: 13 frames, 68 observations (28 immature, 31 green mature, 9 discoloration, 0 mature), and 26 frame-side positions.
 
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts\run_wsl_smoke.ps1
-```
+## Run new inference
 
-Or run it inside Ubuntu-20.04 manually:
+Install the optional inference dependencies, then explicitly select the two-stage detector. The supplied model files are trusted project assets; only load weights from trusted sources.
 
 ```bash
-source /opt/ros/noetic/setup.bash
-cd ~/prms_ws
-catkin_make --only-pkg-with-deps prms_bringup prms_fusion prms_msgs prms_perception_bridge prms_topology prms_sim
-source devel/setup.bash
-roslaunch --skip-log-check prms_bringup simulation_smoke.launch
+python -m pip install -r optional-requirements.txt
+python demo.py --input data/panoramas --map assets/farm_map.jpg --output outputs/inference --detector two-stage --detector-weights models/tomato_detector.pt --classifier-weights models/tomato_ripeness_classifier.pt --export-six-faces --max-frames 0
 ```
 
-The smoke simulation publishes a topology path, simulated `map -> body` TF, and `Odometry`. It exits successfully after the simulated robot has moved along the route.
+This exports six perspective faces and runs recognition on the left and right faces. Model predictions from a fresh run can differ from archived predictions with changes in checkpoints or dependency versions. The optional color detector is a smoke-test fallback, not a YOLO result.
 
-Run the reference-map smoke launch inside Ubuntu-20.04:
+Add `--pose-csv poses.csv` to consume camera poses supplied by any external localization system. Add `--range-manifest ranges.json` for registered radial ranges. The present geometry assumes level camera poses (yaw only); it is not a general six-degree-of-freedom fusion implementation. See [interfaces](docs/interfaces.md).
 
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts\run_wsl_map_smoke.ps1
-```
+## Evidence and limitations
 
-Or run the launch manually inside Ubuntu-20.04:
+- The 13 panoramas and model weights are included, with per-file SHA-256 hashes.
+- The sample has no measured poses or range maps. Default coordinates use a synthetic trajectory and assumed row planes; inferred heights are estimates.
+- Bounding boxes and view dimensions preserve vertical pixel information. `plants.csv` is a legacy filename for frame-side observation groups, not identified plants.
+- No measured geometry means no cross-frame deduplication or verified nearest-row filtering. Track IDs remain observation IDs or association candidates.
+- Registered-range and supplied-pose inputs enable geometric filtering and candidate association, not automatically validated fruit identities or survey accuracy.
+- Historical metrics in `benchmarks/` are development-validation records; their evaluation images are not included. This package cannot independently reproduce all manuscript performance claims.
 
-```bash
-source /opt/ros/noetic/setup.bash
-cd ~/prms_ws
-catkin_make --only-pkg-with-deps prms_bringup prms_fusion prms_msgs prms_perception_bridge prms_topology prms_sim
-source devel/setup.bash
-roslaunch --skip-log-check prms_bringup simulation_map_smoke.launch
-```
+See [paper requirements](docs/paper_requirements.md) and [provenance](docs/provenance.md).
 
-The reference map is provided as a ROS occupancy grid under `examples/maps/`.
+## Layout
 
-Run the closed-loop navigation smoke simulation:
+- `data/panoramas/`: 13 source panoramas.
+- `models/`: detector and ripeness classifier.
+- `ripeness_demo/`: projection, inference, mapping, range checks and HTML report.
+- `demo/`: archived prediction output and offline viewer.
+- `scripts/`: replay, integrity verification and evaluation entry points.
+- `interfaces/ros_msgs/`: preserved ROS message schemas for external adapters; no ROS runtime is required.
+- `tests/`: projection, input validation, association and report tests.
 
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts\run_wsl_closed_loop_nav_smoke.ps1
-```
-
-This checks a minimal navigation loop: topology path -> path follower -> `cmd_vel` -> odometry simulator -> final-goal validator.
-It also writes a replayable trace to `outputs/nav_smoke/latest_trace.json`.
-
-Expected success line:
-
-```text
-PRMS closed-loop navigation smoke passed: path_poses=3 cmd_samples>=5 final_error_m<=0.2
-```
-
-Open the navigation visualization:
-
-```text
-examples/nav_smoke/index.html
-```
-
-The page shows the reference grid map, topology path, simulated odometry trace, and final-goal error. It includes a built-in sample trace and can load a fresh `outputs/nav_smoke/latest_trace.json` file generated by the smoke script.
-
-## External Components
-
-The system expects these external modules to be connected in later steps:
-
-- `NEXTE_Sentry_Nav`: FAST-LIO mapping/localization, `move_base`, DWA local planning, serial velocity bridge.
-- `PRMS`: panoramic image extraction, maturity detection/classification, saved detection replay, and 3D HTML map generation.
-
-Keep large raw data, ROS bags, trained weights, and generated outputs outside Git unless they are intentionally released as a minimal reproducibility dataset.
-
-See `docs/navigation_integration.md` for the inspected navigation package layout and topic contracts.
-See `docs/setup_status.md` for the current Windows, GitHub, WSL, and ROS setup status.
-See `docs/reproducibility_plan.md` for the staged validation plan and the additional data needed for reviewer-facing evidence.
-See `docs/系统实现思路.md` for the Chinese implementation roadmap.
+Original repository software remains under LICENSE. Imported processing code and accompanying data retain [their original terms](LICENSE_DATA_AND_IMPORTED_CODE): MIT for source code and CC BY 4.0 for data, images, weights and documentation. Third-party dependencies retain their own licenses.

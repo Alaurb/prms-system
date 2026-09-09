@@ -1,0 +1,56 @@
+{
+  "acceptance_rule": "Accept a replacement only when mAP50-95 improves without decreasing precision, recall, or mAP50 on the unchanged original validation split.",
+  "evaluation_settings": {
+    "detector_split": "original val: 26 images, 173 labeled boxes",
+    "detector_imgsz": 1280,
+    "classifier_split": "original val: 42 crops",
+    "classifier_imgsz": 96
+  },
+  "baseline": {
+    "detector": {
+      "precision": 0.6536439911,
+      "recall": 0.6878612717,
+      "mAP50": 0.6838425753,
+      "mAP50-95": 0.3340413550
+    },
+    "classifier_top1": 0.8095238209
+  },
+  "candidate_v1_clean_labels_only": {
+    "detector": {
+      "precision": 0.7140162089,
+      "recall": 0.6494394447,
+      "mAP50": 0.6854999465,
+      "mAP50-95": 0.3216881107
+    },
+    "classifier_top1": 0.7142857313,
+    "decision": "rejected"
+  },
+  "candidate_v2_high_confidence_self_training": {
+    "pseudo_labels": {
+      "source_missing_label_images": 62,
+      "included_images": 7,
+      "boxes": 10,
+      "minimum_confidence": 0.55,
+      "mean_confidence": 0.5922392547
+    },
+    "detector": {
+      "precision": 0.6969952613,
+      "recall": 0.6936416185,
+      "mAP50": 0.6965541029,
+      "mAP50-95": 0.3394557167
+    },
+    "absolute_change_from_baseline": {
+      "precision": 0.0433512702,
+      "recall": 0.0057803468,
+      "mAP50": 0.0127115276,
+      "mAP50-95": 0.0054143618
+    },
+    "decision": "accepted_as_optimized_detector"
+  },
+  "classifier_decision": "Keep the original classifier; the cleaned-data candidate reduced top-1 accuracy from 0.810 to 0.714.",
+  "limitations": [
+    "The validation sets are small and are not independent field trials.",
+    "Some detector images lack manual labels; the reported metrics apply only to this dataset.",
+    "Pseudo-labels are teacher predictions and are not manual ground truth."
+  ]
+}

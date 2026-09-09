@@ -1,0 +1,29 @@
+{
+  "processed_frames": 13,
+  "trajectory_points": 13,
+  "detections": 68,
+  "plant_columns": 26,
+  "plants_with_detections": 20,
+  "class_counts": {
+    "immature": 28,
+    "green_mature": 31,
+    "discoloration": 9,
+    "mature": 0
+  },
+  "detector": "yolo_two_stage_brightness_ensemble",
+  "pose_source": "synthetic_map_path",
+  "plant_assignment": "frame_side_proxy",
+  "limitations": [
+    "detections are model predictions rather than independently verified ground truth",
+    "each plant column is a frame-side proxy because individual plant IDs were not supplied",
+    "synthetic_map_path is generated from filename order; not surveyed positions",
+    "row distance is assumed when depth is unavailable; background rows cannot be verified",
+    "track IDs are within-pass spatial association candidates, not verified unique fruit identities"
+  ],
+  "processing_mode": "saved_prediction_replay",
+  "range_source": "assumed_row_plane",
+  "nearest_row_filter": "not_verified_no_depth",
+  "association_status": "disabled_no_measured_geometry",
+  "candidate_tracks": 68,
+  "rejected_observations": 0
+}

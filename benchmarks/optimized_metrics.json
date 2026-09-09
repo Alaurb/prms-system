@@ -1,0 +1,31 @@
+{
+  "name": "candidate_v2",
+  "environment": {
+    "python": "3.12.13",
+    "torch": "2.12.1+cu130",
+    "cuda_runtime": "13.0",
+    "cuda_available": true,
+    "device": "NVIDIA GeForce RTX 3070 Laptop GPU"
+  },
+  "models": {
+    "detector": "work/optimization/models/tomato_detector_candidate_v2.pt",
+    "classifier": "models/tomato_ripeness_classifier.pt"
+  },
+  "settings": {
+    "detector_imgsz": 1280,
+    "classifier_imgsz": 96,
+    "split": "val"
+  },
+  "detector": {
+    "metrics/precision(B)": 0.6969952612727982,
+    "metrics/recall(B)": 0.6936416184971098,
+    "metrics/mAP50(B)": 0.6965541029035325,
+    "metrics/mAP50-95(B)": 0.33945571671304486,
+    "fitness": 0.33945571671304486
+  },
+  "classifier": {
+    "metrics/accuracy_top1": 0.8095238208770752,
+    "metrics/accuracy_top5": 1.0,
+    "fitness": 0.9047619104385376
+  }
+}

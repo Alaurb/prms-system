@@ -1,0 +1,15 @@
+{
+  "input": "../data/panoramas",
+  "map": "../assets/farm_map.jpg",
+  "pose_csv": null,
+  "weights": null,
+  "detector_weights": "../models/tomato_detector.pt",
+  "classifier_weights": "../models/tomato_ripeness_classifier.pt",
+  "brightness_gain": 1.25,
+  "detector_imgsz": 1280,
+  "face_size": 1440,
+  "map_width_m": 35.0,
+  "row_offset_m": 1.15,
+  "camera_height_m": 1.15,
+  "revision_processing": "saved_prediction_replay; no new inference or measured depth"
+}

@@ -1,0 +1,320 @@
+% Prepared for submission to AgriEngineering (MDPI).
+% MDPI LaTeX template, ACS numeric reference style.
+\documentclass[agriengineering,article,submit,pdftex,moreauthors]{Definitions/mdpi}
+
+\firstpage{1}
+\makeatletter
+\setcounter{page}{\@firstpage}
+\makeatother
+\pubvolume{1}
+\issuenum{1}
+\articlenumber{0}
+\pubyear{2026}
+\copyrightyear{2026}
+\datereceived{}
+\daterevised{}
+\dateaccepted{}
+\datepublished{}
+\hreflink{https://doi.org/}
+
+\Title{Ripeness Monitoring in Open-Facility Environments Using a Quadruped Robot and Panoramic AI Recognition}
+\TitleCitation{Ripeness Monitoring in Open-Facility Environments Using a Quadruped Robot and Panoramic AI Recognition}
+
+\Author{Jinru Lyu $^{1}$, Zihan Wang $^{1}$, Shuhan Shi $^{1}$, Zhenfeng Xue $^{1,*}$ and Zhonghua Miao $^{1,*}$}
+\AuthorNames{Jinru Lyu, Zihan Wang, Shuhan Shi, Zhenfeng Xue and Zhonghua Miao}
+\AuthorCitation{Lyu, J.; Wang, Z.; Shi, S.; Xue, Z.; Miao, Z.}
+
+\address{$^{1}$ \quad School of Mechatronic Engineering and Automation, Shanghai University, Shanghai 200444, China}
+\corres{Correspondence: zfxue0903@shu.edu.cn (Z.X.); zhhmiao@shu.edu.cn (Z.M.). Zhenfeng Xue and Zhonghua Miao are co-corresponding authors.}
+
+
+% Major textual revision, 2026-09-08. Existing figure assets retained pending redraw.
+% AUTHOR CHECK comments identify facts that require author confirmation.
+\abstract{Greenhouse tomato inspection requires mobile image acquisition across narrow aisles and terrain transitions, together with interpretable records of crop ripeness. This study presents a wheel-legged quadruped platform combining LiDAR-based navigation, an RGB-D camera for near-field terrain sensing, and panoramic acquisition. Equirectangular images are geometrically reprojected into perspective views, and the left and right views are processed offline using a tomato detector followed by a ripeness classifier. Five field visits between October and December 2025 provided qualitative demonstrations of row traversal, inter-row transition, and obstacle negotiation in a commercial greenhouse. A separate reproducibility example comprises 13 sequential panoramas and 68 saved detection observations across 26 frame-side positions. Archived development-validation records report detector precision of 0.697, recall of 0.694, mAP at an intersection-over-union threshold of 0.5 of 0.697, and mAP averaged over thresholds from 0.5 to 0.95 of 0.339; classifier top-1 accuracy was 0.810 on 42 validation crops. These validation data were used for model selection and do not constitute an independent field benchmark. The panorama example uses an assumed trajectory and row geometry, so its three-dimensional display organizes observations rather than verifying fruit locations or unique-fruit counts. The results support the feasibility of bilateral panoramic acquisition and offline ripeness summarization and identify the measurements needed for spatially accurate crop mapping. Code and panorama examples for offline ripeness detection and spatial observation mapping are available at \url{https://github.com/Alaurb/prms-system}; navigation implementation is outside the repository scope.}
+\keyword{tomato ripeness; wheel-legged quadruped; panoramic imaging; offline recognition; observation mapping; reproducibility}
+\begin{document}
+\section{Introduction}
+Monitoring crop ripeness is important for precision management and harvesting decisions~\cite{wang2024lightweight,yang2023strawberry}. Mobile platforms can extend image acquisition along greenhouse rows, but terrain, viewpoint, occlusion, and interpretation of repeated observations must be considered together. In this paper, open-facility environments refer to greenhouse cultivation areas containing structured aisles, soil surfaces, and transitions between them.
+
+Rail-guided and wheeled systems provide useful inspection solutions in structured facilities~\cite{meng2024real}. Their suitability for other areas depends on vehicle geometry, traction, and infrastructure. Figure~\ref{fig1_terrain} illustrates this variability. Panels c1 and c2 show transitions rather than uniformly impassable surfaces: the former includes a hardened-aisle/rail transition, and the latter a semi-hardened-ground/soil transition. Photographs alone cannot establish whether a particular platform can traverse them.
+
+Panoramic acquisition offers bilateral observation from one camera position, but wider angular coverage does not guarantee complete canopy visibility or accurate fruit counts. To interpret image sequences, one must distinguish a detected appearance from a unique fruit and distinguish an arranged visualization from a measured spatial reconstruction.
+\begin{figure}[H]
+	\begin{adjustwidth}{-\extralength}{0cm}
+	\centering
+	\includegraphics[width=\linewidth]{fig1_terrain.pdf}
+	\caption{Greenhouse surfaces and transitions: (a1--a3) structured soilless-cultivation aisles; (b1--b2) soil-based cultivation; and (c1--c5) transitions between surfaces or elevations. Panel c1 includes a hardened-aisle/rail transition and c2 a semi-hardened-ground/soil transition. These photographs illustrate potential mobility constraints, not measured vehicle-specific passability.}
+	\label{fig1_terrain}
+	\end{adjustwidth}
+\end{figure}
+Ripeness monitoring platforms have evolved from rail-guided systems in structured greenhouses to more mobile and sensor-rich solutions. Meng \textit{et al.}~\cite{meng2024real} combined two Intel RealSense D435 depth cameras with image stitching and depth mapping to improve cherry tomato canopy coverage. For less structured environments, the MARS-PhenoBot developed by Li \textit{et al.}~\cite{li2025field} integrates multi-view RGB imaging with RTK-GNSS navigation for autonomous blueberry phenotyping. Unmanned aerial vehicles~\cite{qu2024fast} and handheld or wearable devices~\cite{parr2023grape} further extend monitoring coverage and portability. These developments indicate a broader transition toward multisensor fusion, modular platforms~\cite{xu2022modular}, and autonomous operation; however, mobility and stable image acquisition remain difficult in narrow greenhouse aisles with heterogeneous terrain.
+
+Ripeness recognition methods have progressed from manual inspection and color-based rules to machine-learning and deep-learning approaches. Early studies combined appearance, color, and texture features with statistical classifiers for banana and papaya ripeness assessment~\cite{mendoza2004application,pereira2018predicting}. More recent methods use convolutional neural networks for simultaneous fruit detection and maturity classification, including MTD-YOLO for cherry tomatoes~\cite{chen2024mtd} and YOLOv5x for strawberries~\cite{vicente2025intelligent}. Transformer-based models have also improved agricultural recognition: an enhanced RT-DETR increased fruit ripeness detection accuracy while reducing model size and computational complexity~\cite{wu2025improved}, and SegLoRA combined transformer-based segmentation with low-rank adaptation for tomato ripeness estimation under variable field conditions~\cite{pisharody2025precise}. Nevertheless, most methods evaluate individual planar images and do not address continuous, spatially registered monitoring from a moving platform.
+
+Agricultural mapping research has increasingly integrated perception, localization, and semantic information. Visual and LiDAR-based SLAM methods support navigation and reconstruction under occlusion, repetitive textures, and variable illumination~\cite{islam2023agri,cuaran2024under,han2023visual}. Object-level approaches such as Tree-SLAM~\cite{rapado2025tree} and ROLS~\cite{nellithimaru2019rols} associate detected crops with spatial locations for orchard mapping, fruit counting, and yield estimation. LiDAR--vision semantic mapping~\cite{pan2024novel} and crop-aware SLAM frameworks~\cite{yuan2024simultaneous} further demonstrate the potential of spatial crop analysis. However, existing studies focus primarily on fruit localization, counting, or object distribution; ripeness-aware spatiotemporal mapping in greenhouses remains insufficiently investigated, particularly on platforms capable of traversing narrow aisles and uneven terrain.
+
+
+This study investigates a workflow combining a wheel-legged quadruped, conventional navigation, panoramic acquisition, offline recognition, and observation visualization. The contribution is the integration and demonstration of these components, rather than a new detector architecture or path planner. Qualitative field sequences and a separate panorama-based reproduction example provide different types of evidence. Because measured localization trajectories are unavailable for the supplied example, its spatial assumptions are explicitly separated from the robot's field navigation.
+
+\section{Materials and Methods}
+\subsection{Monitoring Objective and Ripeness Categories}
+For frame $i$ and side view $s$, recognition produces an observation set
+\begin{equation}
+\mathcal{O}_{i,s}=\{(\mathbf{b}_j,c_j,q_j)\}_{j=1}^{n_{i,s}},
+\end{equation}
+where $\mathbf{b}_j$ is an image bounding box, $c_j$ is a predicted ripeness class, and $q_j$ is a confidence value. The same tomato may contribute several observations across frames. Assigning persistent identities and physical coordinates requires additional geometric evidence.
+
+Four visually defined categories are used: immature, green mature, discoloration, and mature (Figure~\ref{fig2_maturity_period}). Table~\ref{table_maturity} summarizes their image-based interpretation. Internal seed development is not observable in the supplied external images and is not independently established by these labels.
+% AUTHOR CHECK: Verify the exact applicability and wording of GH/T 1193-2021 before restoring the original standard-based classification claim.
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.62\linewidth]{fig2_ripeness.pdf}
+	\caption{Four visually defined ripeness stages: (a) immature, (b) green mature, (c) discoloration, and (d) mature.}
+	\label{fig2_maturity_period}
+\end{figure}
+\begin{table}[H]
+\caption{Visible appearance used to describe the four ripeness categories. Boundary cases require a consistent manual annotation protocol.}
+\centering
+\begin{tabular}{p{2.5cm}p{7.0cm}}
+\toprule
+Category & Visible appearance\\
+\midrule
+Immature & Predominantly green fruit with an apparently underdeveloped appearance; size alone is not a reliable criterion.\\
+\midrule
+Green mature & Developed fruit that remains green or whitish green; separation from immature fruit can be ambiguous in images.\\
+\midrule
+Discoloration & Visible transition in surface colour, including yellow or pale-red regions.\\
+\midrule
+Mature & Predominantly mature external colour for the cultivar; redness alone does not generalize to all cultivars.\\
+\bottomrule
+\end{tabular}
+\label{table_maturity}
+\end{table}
+
+\subsection{System Architecture and Processing Mode}
+The mobile platform was a Unitree Go2-W EDU wheel-legged quadruped. A Livox MID-360 LiDAR provided localization and navigation-related sensing, while an Intel RealSense D435i RGB-D camera provided complementary near-field terrain information. A Panox V3 panoramic camera recorded images for subsequent ripeness analysis (Figure~\ref{fig3_overview}).
+
+The camera output used here is an equirectangular image. Cube-face generation is a software reprojection operation, not rectangular image cutting or direct use of camera-generated cube faces. Navigation and acquisition took place during field operation; ripeness inference and visualization were processed offline. Depth-camera terrain sensing should also be distinguished from registered depth for individual tomatoes, which is unavailable in the supplied example.
+\begin{figure}[H]
+	\begin{adjustwidth}{-\extralength}{0cm}
+    \centering
+    \includegraphics[width=\linewidth]{fig3_overview.pdf}
+    \caption{Mobile panoramic inspection architecture. Navigation and acquisition operate on the field platform; panoramic reprojection, recognition, and observation visualization are offline stages. Metric fruit mapping requires additional synchronized geometric measurements.}
+    \label{fig3_overview}
+	\end{adjustwidth}
+\end{figure}
+\subsection{Navigation and Terrain Negotiation}
+\subsubsection{Route Guidance and Planar Navigation}
+The system uses the conventional \texttt{move\_base} framework. Route guidance specifies an ordered sequence of waypoints in a predefined greenhouse topology; the navigation components plan and execute motion between successive goals. This does not constitute autonomous discovery of greenhouse rows from only a start and an end point.
+
+The planar representation concerns footprint and horizontal motion commands, rather than asserting dynamic equivalence between a wheel-legged platform and a four-wheeled vehicle. Low-level locomotion is handled by the platform controller (Figure~\ref{fig4_navigation}). ROS1 and \texttt{move\_base} are implementation dependencies, not scientific contributions. Migration to a newer software stack would require verification of transforms, timing, sensor interfaces, and controller behaviour.
+% AUTHOR CHECK: Document ROS distribution, original field package revisions, global/local planner plugins, and actual route settings. Explain legacy-stack support status using a verified source.
+
+\subsubsection{Terrain Sensing and Locomotion Modes}
+Normal and terrain modes were used for aisle travel and surface transitions. LiDAR supports localization and obstacle representation, while the RGB-D camera can provide near-field surface geometry. LiDAR is not intrinsically unable to observe the ground: coverage depends on mounting, field of view, occlusion, and range.
+
+The available records do not establish a reproducible terrain classifier or an autonomous gait-switching rule. Posture and locomotion changes in the field sequences are therefore reported as observed platform behaviour. Quantifying sensor necessity or adaptive-control performance would require the switching logic and comparative experiments.
+% AUTHOR CHECK: Identify whether each mode change was operator-commanded, platform-firmware-controlled, or triggered by an author-implemented rule.
+
+\subsubsection{Obstacles and Blocked-Route Behaviour}
+A pedestrian is a potentially moving obstacle; this terminology does not imply an implemented semantic pedestrian detector. Static objects and cultivation boundaries constrain free space, whereas a moving person changes that space over time. The illustrated events do not establish guaranteed avoidance.
+
+A fully blocked route was not documented in the available evidence. A deployment needs an explicit stopping, bounded-replanning, timeout, and operator-intervention policy. These behaviours cannot be reported as verified here without the relevant settings and trial records.
+% AUTHOR CHECK: Supply the actual tested failure/recovery policy; do not substitute a proposed policy for historical behaviour.
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.72\linewidth]{fig4_navigation.pdf}
+	\caption{Conventional navigation framework with predefined route guidance and platform locomotion control. A new global or local planning algorithm is not proposed.}
+	\label{fig4_navigation}
+\end{figure}
+\subsection{Offline Ripeness Recognition}
+\subsubsection{Panorama Reprojection and View Selection}
+Each panorama records both sides of an aisle at the same acquisition instant. Software reprojects the spherical image into front, back, left, right, top, and bottom cube-face orientations (Figure~\ref{fig5_pano}). Only the left and right views are selected for inference. A six-face representation therefore does not imply that all six faces are processed by the detector.
+
+For pixel $(u,v)$, the viewing ray is proportional to $R_sK^{-1}[u,v,1]^\mathsf{T}$. Here, $K$ describes the perspective-face intrinsics and $R_s$ its orientation. The direction's longitude and latitude identify the location to sample in the equirectangular image. This operation reduces equirectangular stretching in the selected views but does not eliminate stitching artefacts, occlusion, or perspective effects.
+
+The supplied example contains $5760\times2880$ panoramas and uses $1440\times1440$ side views with a $90^\circ$ field of view. The fixed viewpoint does not guarantee full-plant coverage: camera height, selected vertical field of view, canopy geometry, and occlusion determine which fruit are visible.
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.46\linewidth]{fig5_pano.pdf}
+	\caption{Geometric reprojection of an equirectangular panorama into six perspective cube faces. Only the left and right views are selected for ripeness inference.}
+	\label{fig5_pano}
+\end{figure}
+\subsubsection{Detection and Classification}
+The supplied processing implementation uses a two-stage pipeline: a tomato detector produces candidate crops, and a classifier assigns ripeness categories. The classifier includes the four ripeness classes and an additional category for non-target or unsuitable crops, which is excluded from ripeness outputs. The native class labels are normalized to the four ripeness names used in this manuscript.
+
+The reproduction-example configuration combines original-view and brightness-enhanced inference, using a brightness gain of 1.25 and detector input size 1280. These settings describe the available example. They do not establish that every historical illustration used an identical model checkpoint. Processing sequential frames offline is distinct from real-time inference on the moving robot.
+% AUTHOR CHECK: Reconcile model architecture variants, training histories and checkpoint hashes with the original field figures.
+
+\subsection{Observation Mapping and Geometric Requirements}
+The example associates detections with frame order and viewing side. Its trajectory is generated from filename order and its lateral row distance is assumed; synchronized measured LiDAR poses are not supplied. Thus, its three-dimensional representation organizes observations rather than reconstructing measured fruit locations.
+
+A calibrated fruit-coordinate estimate would require
+\begin{equation}
+\mathbf{p}_W=R_{WC}(t_i)(\rho\hat{\mathbf{d}}_C)+\mathbf{t}_{WC}(t_i),
+\end{equation}
+where $\hat{\mathbf{d}}_C$ is a unit viewing ray, $\rho$ is measured range along the ray, and $(R_{WC},\mathbf{t}_{WC})$ is the camera pose at acquisition time. Robot position alone cannot determine the tomato's position. This equation specifies the geometric inputs needed for metric mapping, not a validated computation on the supplied data.
+
+Vertical image position can be retained through the bounding box. A pixel coordinate is not a physical fruit height; metric height additionally depends on geometry. Any row-plane-based estimate must state its assumed distance and coordinate provenance. In contrast, maturity-grouped stacks are count graphics whose vertical axis must not be interpreted as physical elevation (Figure~\ref{fig6_mapping}).
+
+Left/right view selection alone does not exclude fruit in background rows. Without measured range or independently validated row segmentation, nearest-row membership remains uncertain. Cross-frame association also requires validation before detections are counted as unique fruits. This study therefore interprets the example counts as observations, with frame-side positions serving as proxies rather than identified plants.
+
+Each inspection produces a session output. Longitudinal mapping would require registration to a common reference frame and explicit handling of plant growth, pruning, harvesting, and changing visibility. A persistent multi-session map is not demonstrated here.
+\begin{figure}[H]
+	\begin{adjustwidth}{-\extralength}{0cm}
+	\centering
+	\includegraphics[width=\linewidth]{fig6_mapping.pdf}
+	\caption{Observation-processing workflow and geometric inputs required for metric mapping. In the supplied panorama example, pose and row geometry are assumed. Count stacks represent observations, not physical fruit heights.}
+	\label{fig6_mapping}
+	\end{adjustwidth}
+\end{figure}
+\subsection{Experimental Setting and Data}
+Five field visits were conducted at Sunqiao Yijia Farm in Shanghai, China, between October and December 2025. Selected sequences illustrate row entry, row exit, inter-row transition, and obstacle negotiation. The five visits must not be interpreted as five independent repetitions of each scenario. Scenario-specific trial totals, failures, and navigation errors are not available in the supporting material.
+
+A separate reproduction example contains 13 consecutive panoramas, frames 702--714, with saved predictions and display outputs. Filenames identify sequence order but do not establish synchronization with localization measurements.
+
+The existing source audit records the dataset inventory in Table~\ref{tab:data}. Some detector images lack label files, and the records do not establish that all such images are verified negatives. The audit reports no exact image duplicates across splits, but this does not exclude related frames or crops from the same acquisition sequence. Complete training and evaluation images are not included in the minimal panorama package.
+\begin{table}[H]
+\caption{Archived source-audit inventory. The classifier includes the auxiliary \texttt{other} category.}
+\centering
+\begin{tabular}{lrrr}
+\toprule
+Subset & Training & Validation & Test\\
+\midrule
+Detector images & 192 & 26 & 24\\
+Recorded manual detector boxes & 1053 & 173 & 140\\
+Classifier crops & 121 & 42 & Not reported\\
+\bottomrule
+\end{tabular}
+\label{tab:data}
+\end{table}
+
+\subsection{Development-Validation Protocol}
+Archived comparisons evaluated the detector at input size 1280 and the classifier at size 96 on the original validation splits. Candidate selection used these same splits, so the results are development-validation measurements rather than independent generalization estimates. Detector average precision is reported at IoU 0.5 and over IoU thresholds 0.5--0.95. Classifier top-1 accuracy evaluates supplied crops, not the complete detection-and-classification pipeline.
+
+One detector candidate used 10 teacher-generated pseudo-label boxes from seven training images originally lacking labels. These predictions are not additional manual ground truth. The benchmark record identifies an NVIDIA GeForce RTX 3070 Laptop GPU. Original training settings and checkpoint-to-figure correspondence still require verification before a fully reproducible training account is available.
+% AUTHOR CHECK: Add verified initialization, architecture, epochs, optimizer, learning rate, batch size, augmentation, software versions, annotation protocol and split construction.
+
+\section{Results}
+\subsection{Qualitative Mobility Demonstrations}
+\subsubsection{Row Traversal and Transition}
+Figure~\ref{fig_navigation_test} presents row entry, row exit, and inter-row transition. The selected images show aisle traversal and passage across a soil/concrete transition. They provide qualitative evidence of these observed motions, without establishing lateral tracking accuracy, comparative speed, or trial success rates.
+\begin{figure}[H]
+	\begin{adjustwidth}{-\extralength}{0cm}
+	\centering
+	\includegraphics[width=\linewidth]{fig7_navigation_test.pdf}
+	\caption{Illustrative field navigation sequences: row entry (top), row exit (middle), and inter-row transition (bottom). Selected sequences do not provide a scenario-level success rate.}
+	\label{fig_navigation_test}
+	\end{adjustwidth}
+\end{figure}
+\subsubsection{Obstacle Negotiation}
+Figure~\ref{fig_obstacle_tests} presents three scenarios.
+
+\textbf{Pedestrian passage.} The top sequence shows the robot passing a person without an apparent collision. Clearance, response latency, and fully blocked-aisle behaviour are not quantified.
+
+\textbf{Terrain-discontinuity traversal.} The middle sequence shows a change in posture and locomotion while crossing a surface boundary. The images do not establish the sensor decision or controller trigger responsible for the change.
+
+\textbf{Cultivation-boundary avoidance.} The bottom sequence shows motion outside the cultivated area. Minimum clearance and planner-event records are unavailable. These outcomes do not isolate the contributions of particular sensors or planning components.
+\begin{figure}[H]
+	\begin{adjustwidth}{-\extralength}{0cm}
+	\centering
+	\includegraphics[width=\linewidth]{fig8_obs_avoid.pdf}
+	\caption{Illustrative obstacle-negotiation sequences: pedestrian passage (top), terrain-discontinuity traversal (middle), and cultivation-boundary avoidance (bottom).}
+	\label{fig_obstacle_tests}
+	\end{adjustwidth}
+\end{figure}
+\subsection{Offline Recognition Examples}
+\subsubsection{Individual Views}
+Figure~\ref{fig_single_ripe} shows predicted ripeness labels in representative scenes containing foliage, partial occlusion, and illumination variation. These qualitative outputs establish that the pipeline returns detections in the selected images; independent labels are needed to evaluate correctness and missed fruit.
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.82\linewidth]{fig9_ripe_detect.pdf}
+	\caption{Qualitative examples of offline ripeness predictions. Bounding boxes are model outputs and do not establish precision or recall without independent annotations.}
+	\label{fig_single_ripe}
+\end{figure}
+\subsubsection{Sequential Views}
+Figure~\ref{fig_continuous_ripe} illustrates offline recognition on images acquired during traversal. Class-coloured boxes show successive observations. Persistence across selected frames does not establish real-time performance or unique-fruit identity. Temporal and stacked plots summarize predictions, rather than ground-truth fruit numbers.
+\begin{figure}[H]
+	\begin{adjustwidth}{-\extralength}{0cm}
+	\centering
+	\includegraphics[width=\linewidth]{fig10_ripe_distri.pdf}
+	\caption{Offline ripeness predictions from sequential images acquired during traversal. Repeated appearances may contribute multiple observations; stacked counts do not represent physical fruit elevation.}
+	\label{fig_continuous_ripe}
+	\end{adjustwidth}
+\end{figure}
+\subsection{Archived Development-Validation Results}
+Table~\ref{tab:metrics} reports the existing benchmark records. The selected detector candidate modestly improved the recorded validation metrics relative to the baseline. These differences are not independently confirmed improvements because the same validation split was used for selection. Classifier top-1 accuracy was 0.810 on 42 validation crops. Per-class precision, recall, and an independently evaluated confusion matrix are not present in the supplied summaries.
+
+\begin{table}[H]
+\caption{Archived detector development-validation results on 26 images with 173 recorded boxes, rounded to three decimals. These measurements were not rerun for this textual revision; checkpoint correspondence with the historical figures remains to be verified.}
+\centering
+\begin{tabular}{lrrrr}
+\toprule
+Model record & Precision & Recall & mAP$_{50}$ & mAP$_{50:95}$\\
+\midrule
+Baseline & 0.654 & 0.688 & 0.684 & 0.334\\
+Selected candidate & 0.697 & 0.694 & 0.697 & 0.339\\
+\bottomrule
+\end{tabular}
+\label{tab:metrics}
+\end{table}
+
+\subsection{Reproduction Example and Visualization}
+The saved-prediction example contains 68 detections across 13 panoramas and 26 left/right observation positions: 28 immature, 31 green-mature, nine discoloration-stage, and zero mature predictions. Twenty observation positions contain at least one detection. These are model-output counts. Zero mature predictions does not establish absence of mature fruit, and this sample cannot demonstrate performance on all four classes.
+
+The example output was regenerated by replaying saved predictions. Its trajectory is synthetic, its row geometry assumed, and its columns frame-side proxies. It therefore supports inspection of data organization and visualization, but not metric fruit localization or unique-fruit counting. The example is distinct from the complete set of historical field illustrations.
+
+\section{Discussion}
+The field sequences support the feasibility of moving a wheel-legged platform through selected greenhouse aisles and transitions while acquiring images. They do not provide a comparative mobility benchmark: navigation error, energy use, traversal time, minimum clearance, and scenario-level success rates were not measured in the available records. Superior mobility, guaranteed avoidance, and validated autonomous gait switching remain unsupported without additional evidence.
+
+Bilateral perspective views allow a consistent recognition pipeline to process both sides of an aisle. However, higher monitoring throughput has not been established against planar-camera or gimbal-based alternatives. The archived validation results offer a quantitative starting point, limited by small subsets, possible sequence dependence, incomplete annotation information, and validation-based model selection. Future evaluation should separate acquisition sequences or dates across training and testing and report per-class performance and end-to-end latency.
+
+The fixed camera configuration does not guarantee complete canopy coverage. Azimuthal coverage of a panorama differs from the vertical coverage of the selected views. Camera placement, fruiting-zone height, stitching artefacts and foliage determine visibility. The 1.15 m camera-height value in the reproduction configuration is an assumption, not independently verified mounting-height evidence. Pixel-height information can be preserved directly, whereas physical fruit height requires calibrated geometry.
+% AUTHOR CHECK: Provide actual mounting height, tilt and inspected vertical range where measurements exist.
+
+Observation organization and fruit-level mapping answer different questions. The current example allows predictions to be examined by frame and side; it does not resolve fruit identity, background-row membership or absolute location. Object-level mapping research~\cite{rapado2025tree,nellithimaru2019rols,pan2024novel} motivates extensions, but comparable spatial claims require synchronized pose, sensor calibration, measured range and independently annotated correspondences. Repeated visits must additionally account for growth and changes in visibility.
+
+Harvesting guidance, quantitative yield estimation and persistent growth monitoring are prospective applications. The available panoramas can support projection checks, image annotation and offline recognition evaluation. Navigation performance and absolute spatial accuracy require additional measurements, which cannot be replaced by a visually plausible map.
+
+\section{Conclusions}
+This study presents a wheel-legged quadruped inspection workflow combining panoramic acquisition with offline tomato detection, ripeness classification and observation visualization. Field sequences qualitatively demonstrate selected mobility scenarios. Archived development-validation records provide limited quantitative evidence for recognition, while a 13-panorama example offers a tractable starting point for reproducing observation processing.
+
+The current evidence does not establish independent field recognition accuracy, real-time end-to-end operation, unique-fruit counting or metric three-dimensional fruit positions. Priority evaluation tasks are independent image annotation, reconciliation of model and training provenance, measured camera geometry, and recorded navigation and localization trials. These additions would permit direct testing of the workflow's spatial and operational performance.
+
+\authorcontributions{Conceptualization, Z.X.; methodology, Z.X. and J.L.; software, J.L.; formal analysis, J.L.; investigation, J.L., Z.W. and S.S.; resources, Z.M.; data curation, J.L., Z.W. and S.S.; writing---original draft preparation, J.L.; writing---review and editing, Z.X.; visualization, J.L.; supervision, Z.X. and Z.M.; project administration, Z.X. and Z.M. All authors have read and agreed to the published version of the manuscript.}
+
+\funding{This research was funded by the Shanghai Municipal Commission of Agriculture and Rural Affairs, grant number T2025301.}
+
+\institutionalreview{Not applicable. The study involved non-invasive imaging and robotic monitoring of commercially cultivated tomato plants and did not collect human-subject data or identifiable personal information.}
+
+\informedconsent{The individual participating in the pedestrian-avoidance test was a member of the research team and provided informed consent to participate. No identifiable personal information was collected or published.}
+
+\dataavailability{The PRMS system repository is available at \url{https://github.com/Alaurb/prms-system}. The repository is organized around offline panoramic ripeness detection and spatial observation mapping, with interfaces for externally supplied camera poses and registered range data. The prepared reproduction package contains 13 frames, model files, and saved outputs. The example does not include measured LiDAR poses or ROS bag recordings. Navigation code is outside the repository scope, and the package does not reproduce the field navigation trials.}
+% AUTHOR CHECK: Supply a verified release identifier, archive URL, file manifest, and final reproduction instructions before submission.
+
+\acknowledgments{The authors thank the management of Sunqiao Yijia Farm for permission to conduct the field experiments and image acquisition. During the preparation of this manuscript, the authors used OpenAI Codex for English-language editing, formatting, and drafting assistance. The authors reviewed and edited the output and take full responsibility for the content of this publication.}
+
+\conflictsofinterest{The authors declare no conflicts of interest. The funder had no role in the design of the study; in the collection, analyses, or interpretation of data; in the writing of the manuscript; or in the decision to publish the results.}
+
+\abbreviations{Abbreviations}{
+The following abbreviations are used in this manuscript:
+\\
+
+\noindent
+\begin{tabular}{@{}ll}
+AI & Artificial intelligence\\
+CNN & Convolutional neural network\\
+LiDAR & Light detection and ranging\\
+RGB-D & Red, green, blue, and depth\\
+SLAM & Simultaneous localization and mapping\\
+YOLO & You only look once
+\end{tabular}}
+
+\begin{adjustwidth}{-\extralength}{0cm}
+\reftitle{References}
+\externalbibliography{yes}
+\bibliography{refs}
+\PublishersNote{}
+\end{adjustwidth}
+
+\end{document}

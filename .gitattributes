@@ -7,4 +7,9 @@
 *.msg text eol=lf
 *.md text
 *.ps1 text
-
+# Keep released evidence byte-identical to its SHA-256 manifest on every OS.
+data/panoramas/** -text
+models/** -text
+demo/** -text
+assets/** -text
+benchmarks/** -text

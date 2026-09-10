@@ -9,15 +9,37 @@ from PIL import Image, ImageDraw, ImageEnhance, ImageFont
 
 
 CLASS_COLORS = {
+    # Green Gem production taxonomy. These are the four counted maturity states.
     "immature": "#2563eb",
+    "mature_green": "#22c55e",
+    "harvest_ready": "#eab308",
+    "overripe_or_defective": "#a855f7",
+    # Compatibility colours for the archived, non-Green-Gem model and output.
     "green_mature": "#22c55e",
     "discoloration": "#f59e0b",
     "mature": "#ef4444",
 }
 
+GREEN_GEM_CLASS_ORDER = ("overripe_or_defective", "harvest_ready", "mature_green", "immature")
+LEGACY_CLASS_ORDER = ("mature", "discoloration", "green_mature", "immature")
+
+
+def class_order_for(class_names: set[str] | list[str] | tuple[str, ...]) -> tuple[str, ...]:
+    """Return a display order without silently relabelling archived predictions."""
+    # `immature` exists in both taxonomies, so it cannot determine the schema.
+    if set(class_names) & {"mature_green", "harvest_ready", "overripe_or_defective"}:
+        return GREEN_GEM_CLASS_ORDER
+    return LEGACY_CLASS_ORDER
+
 CLASS_ALIASES = {
     "immature": "immature",
     "unripe": "immature",
+    "mature_green": "mature_green",
+    "mature green": "mature_green",
+    "harvest_ready": "harvest_ready",
+    "harvest ready": "harvest_ready",
+    "overripe_or_defective": "overripe_or_defective",
+    "overripe or defective": "overripe_or_defective",
     "green": "green_mature",
     "green mature": "green_mature",
     "green_mature": "green_mature",
@@ -139,13 +161,13 @@ def _components(mask: np.ndarray) -> list[tuple[int, int, int, int, int, list[tu
 
 
 class ColorShapeDetector:
-    """Dependency-light fallback for a runnable demo when four-class weights are absent.
+    """Dependency-light Green Gem visual proxy when trained weights are absent.
 
     It uses HSV color, morphological filtering and component shape. This is an
     engineering fallback, not a replacement for the paper's trained YOLO model.
     """
 
-    name = "color_shape_fallback"
+    name = "color_shape_fallback_green_gem_proxy"
 
     def __init__(self, analysis_size: int = 360, max_detections: int = 12):
         self.analysis_size = analysis_size
@@ -201,12 +223,14 @@ class ColorShapeDetector:
                 red_fraction = float(red[yy, xx].mean())
                 warm_fraction = float(warm[yy, xx].mean())
                 mean_value = float(value[yy, xx].mean())
+                # Green Gem fruit is harvest-ready because of a yellow halo,
+                # not a red surface. This is only a runnable UI proxy.
                 if mask_kind == "warm" and red_fraction >= 0.42:
-                    class_name = "mature"
+                    class_name = "overripe_or_defective"
                 elif mask_kind == "warm":
-                    class_name = "discoloration"
+                    class_name = "harvest_ready"
                 elif mean_value >= 0.42 and area >= 34:
-                    class_name = "green_mature"
+                    class_name = "mature_green"
                 else:
                     class_name = "immature"
 

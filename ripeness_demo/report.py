@@ -10,11 +10,8 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
-from .detectors import CLASS_COLORS
+from .detectors import CLASS_COLORS, class_order_for
 from .mapping import Pose, SpatialDetection
-
-
-CLASS_STACK_ORDER = ("mature", "discoloration", "green_mature", "immature")
 
 
 def _plant_columns(
@@ -28,6 +25,7 @@ def _plant_columns(
     for item in detections:
         grouped.setdefault((item.frame, item.side), []).append(item)
 
+    class_order = class_order_for([item.class_name for item in detections])
     plants: list[dict[str, object]] = []
     for pose in poses:
         match = re.search(r"panoramic(\d+)", pose.frame, flags=re.IGNORECASE)
@@ -39,7 +37,7 @@ def _plant_columns(
                 {"class_name": item.class_name, "confidence": round(item.confidence, 6),
                  "x": item.x, "y": item.y, "z": item.z, "track_id": item.track_id,
                  "position_source": item.position_source}
-                for class_name in CLASS_STACK_ORDER
+                for class_name in class_order
                 for item in sorted(
                     (candidate for candidate in items if candidate.class_name == class_name),
                     key=lambda candidate: candidate.confidence,
@@ -55,7 +53,7 @@ def _plant_columns(
                     "x": round(pose.x - math.sin(pose.yaw) * offset, 6),
                     "y": round(pose.y + math.cos(pose.yaw) * offset, 6),
                     "total": len(items),
-                    "counts": {name: counts.get(name, 0) for name in CLASS_STACK_ORDER},
+                    "counts": {name: counts.get(name, 0) for name in class_order},
                     "cubes": cubes,
                     "map_px": round(
                         pose.map_px - math.sin(pose.yaw) * offset * map_size[0] / map_width_m
@@ -91,6 +89,7 @@ def write_csv_files(output_dir: Path, poses: list[Pose], detections: list[Spatia
         writer.writeheader()
         writer.writerows(item.to_dict() for item in detections)
 
+    class_order = class_order_for([item.class_name for item in detections])
     plant_rows = []
     for plant in _plant_columns(poses, detections, row_offset_m=row_offset_m):
         counts = plant["counts"]
@@ -102,14 +101,14 @@ def write_csv_files(output_dir: Path, poses: list[Pose], detections: list[Spatia
                 "x": plant["x"],
                 "y": plant["y"],
                 "total": plant["total"],
-                **{name: counts[name] for name in CLASS_STACK_ORDER},
+                **{name: counts[name] for name in class_order},
                 "assignment_source": plant["assignment_source"],
             }
         )
     with (output_dir / "plants.csv").open("w", encoding="utf-8-sig", newline="") as handle:
         fields = [
             "plant_id", "frame", "side", "x", "y", "total",
-            *CLASS_STACK_ORDER, "assignment_source",
+            *class_order, "assignment_source",
         ]
         writer = csv.DictWriter(handle, fieldnames=fields)
         writer.writeheader()
@@ -138,9 +137,11 @@ def draw_map_overlay(map_image: Image.Image, poses: list[Pose], detections: list
             width=1,
         )
     legend_x, legend_y = 12, 12
-    draw.rounded_rectangle((6, 6, 190, 116), radius=8, fill=(255, 255, 255, 220), outline=(15, 23, 42, 150))
-    draw.text((legend_x, legend_y), "Tomato ripeness", fill=(15, 23, 42), font=font)
-    for index, (name, color) in enumerate(CLASS_COLORS.items(), start=1):
+    class_order = class_order_for([item.class_name for item in detections])
+    draw.rounded_rectangle((6, 6, 230, 28 + len(class_order) * 20), radius=8, fill=(255, 255, 255, 220), outline=(15, 23, 42, 150))
+    draw.text((legend_x, legend_y), "Tomato maturity", fill=(15, 23, 42), font=font)
+    for index, name in enumerate(class_order, start=1):
+        color = CLASS_COLORS[name]
         y = legend_y + index * 20
         draw.ellipse((legend_x, y, legend_x + 10, y + 10), fill=(*_rgb(color), 255))
         draw.text((legend_x + 17, y - 2), name, fill=(15, 23, 42), font=font)
@@ -166,18 +167,19 @@ def write_summary(
     if any(d.position_source == "assumed_row_plane" for d in detections):
         limitations.append("row distance is assumed when depth is unavailable; background rows cannot be verified")
     limitations.append("track IDs are within-pass spatial association candidates, not verified unique fruit identities")
-    if detector_name == "color_shape_fallback":
+    if detector_name.startswith("color_shape_fallback"):
         limitations.insert(
             0,
             "color_shape_fallback is an engineering demonstration used when trained YOLO weights are unavailable",
         )
+    class_order = class_order_for([item.class_name for item in detections])
     summary: dict[str, object] = {
         "processed_frames": processed_frames,
         "trajectory_points": len(poses),
         "detections": len(detections),
         "plant_columns": len(plants),
         "plants_with_detections": sum(int(plant["total"] > 0) for plant in plants),
-        "class_counts": {name: counts.get(name, 0) for name in CLASS_COLORS},
+        "class_counts": {name: counts.get(name, 0) for name in class_order},
         "detector": detector_name,
         "pose_source": pose_source,
         "plant_assignment": "frame_side_proxy",

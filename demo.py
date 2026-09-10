@@ -19,7 +19,7 @@ from ripeness_demo.report import draw_map_overlay, write_csv_files, write_html_r
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Panoramic tomato ripeness detection and 3D spatial mapping demo")
+    parser = argparse.ArgumentParser(description="Panoramic Green Gem tomato maturity detection and spatial mapping demo")
     parser.add_argument("--input", required=True, help="Directory containing panorama images")
     parser.add_argument("--map", required=True, dest="map_path", help="2D occupancy or farm map image")
     parser.add_argument("--output", default="demo_output", help="Output directory")
@@ -213,7 +213,8 @@ def run(args: argparse.Namespace) -> Path:
         frame_timings=timings, includes_model_loading_and_io=True), indent=2), encoding="utf-8")
     counts = Counter(item.class_name for item in detections)
     print(f"Completed: {output_dir / 'index.html'}")
-    print("Class counts: " + ", ".join(f"{name}={counts.get(name, 0)}" for name in ("immature", "green_mature", "discoloration", "mature")))
+    from ripeness_demo.detectors import class_order_for
+    print("Class counts: " + ", ".join(f"{name}={counts.get(name, 0)}" for name in class_order_for([item.class_name for item in detections])))
     return output_dir / "index.html"
 
 

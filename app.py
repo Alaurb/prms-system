@@ -79,7 +79,7 @@ class PrmsApp:
         self.confidence = StringVar(value="0.25")
         self.max_frames = StringVar(value="0")
         self.export_six_faces = BooleanVar(value=True)
-        self.status = StringVar(value="Ready. Select inputs or run the supplied sample.")
+        self.status = StringVar(value="Ready. The bundled classifier is legacy; select validated Green Gem weights for field use.")
 
         frame = ttk.Frame(root, padding=14)
         frame.grid(sticky="nsew")

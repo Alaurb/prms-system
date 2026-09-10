@@ -10,7 +10,7 @@ from PIL import Image, ImageDraw
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from ripeness_demo.detectors import ColorShapeDetector, Detection, _merge_box_candidates
+from ripeness_demo.detectors import ColorShapeDetector, Detection, _merge_box_candidates, class_order_for
 from ripeness_demo.mapping import Pose, SpatialDetection, generate_demo_poses, project_detection
 from ripeness_demo.panorama import extract_side_views
 from ripeness_demo.report import HTML_TEMPLATE, _plant_columns
@@ -25,18 +25,24 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(sides["right"].size, (96, 96))
         self.assertFalse(np.array_equal(np.asarray(sides["left"]), np.asarray(sides["right"])))
 
-    def test_color_detector_finds_red_round_region(self):
+    def test_color_detector_marks_yellow_round_region_harvest_ready(self):
         image = Image.new("RGB", (240, 240), "#193b24")
         draw = ImageDraw.Draw(image)
-        draw.ellipse((75, 70, 150, 145), fill="#d8342b")
+        draw.ellipse((75, 70, 150, 145), fill="#dfbb2b")
         detections = ColorShapeDetector(analysis_size=240).detect(image)
-        self.assertTrue(any(item.class_name == "mature" for item in detections))
+        self.assertTrue(any(item.class_name == "harvest_ready" for item in detections))
 
     def test_brightness_ensemble_merges_overlapping_detector_boxes(self):
         candidates = [((10.0, 10.0, 50.0, 50.0), 0.70), ((12.0, 11.0, 51.0, 49.0), 0.82)]
         merged = _merge_box_candidates(candidates)
         self.assertEqual(len(merged), 1)
         self.assertEqual(merged[0][1], 0.82)
+
+    def test_green_gem_classes_select_green_gem_report_schema(self):
+        self.assertEqual(
+            class_order_for(["immature", "harvest_ready"]),
+            ("overripe_or_defective", "harvest_ready", "mature_green", "immature"),
+        )
 
     def test_projection_places_left_detection_to_left_of_heading(self):
         pose = Pose("frame.jpg", 5.0, 5.0, 0.0, 0.0, 100, 100, "test", 1)

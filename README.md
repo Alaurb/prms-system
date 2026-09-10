@@ -1,6 +1,6 @@
 # PRMS: Panoramic Tomato Ripeness Detection and Spatial Mapping
 
-PRMS is the reproducibility codebase for the manuscript *Ripeness Monitoring in Open-Facility Environments Using a Quadruped Robot and Panoramic AI Recognition*. It turns 360-degree tomato greenhouse panoramas into cube faces, recognizes tomatoes and ripeness stages on the left and right crop-row views, and exports an observation-level spatial map with annotated images, CSV files, JSON metadata, and a local result viewer.
+PRMS is the reproducibility codebase for the manuscript *Ripeness Monitoring in Open-Facility Environments Using a Quadruped Robot and Panoramic AI Recognition*. It turns 360-degree **Green Gem tomato** greenhouse panoramas into cube faces, recognizes tomatoes and visual harvest-maturity stages on the left and right crop-row views, and exports an observation-level spatial map with annotated images, CSV files, JSON metadata, and a local result viewer.
 
 The repository implements the perception and mapping portion of the study. Robot navigation, SLAM, gait control, and obstacle avoidance are not included here. Camera poses and registered range maps may be supplied by an external localization system through documented file interfaces.
 
@@ -21,7 +21,9 @@ Camera pose + optional registered range ---> observation-level spatial mapping
 Annotated views + CSV/JSON + local interactive result page
 ```
 
-The model workflow uses two supplied YOLO models: a tomato detector proposes fruit crops, then a five-class classifier assigns `immature`, `green_mature`, `discoloration`, `mature`, or `other`. The `other` class is excluded from ripeness results. The supplied example uses a brightness-enhanced detector branch in addition to the original image.
+The target Green Gem workflow uses two YOLO models: a tomato detector proposes fruit crops, then a five-class classifier assigns `immature`, `mature_green`, `harvest_ready`, `overripe_or_defective`, or `other`. The four fruit classes are the reported harvest-maturity outcomes; `other` is a negative crop class and is excluded from results. `harvest_ready` is defined by the field team's stable yellow-halo rule, not by red colour.
+
+The included classifier weights and archived `demo/` output predate this Green Gem taxonomy. They are retained solely as a runnable legacy reproducibility example and must not be reported as Green Gem harvest-maturity results. Train and validate replacement weights before using the desktop window for the Green Gem study; the complete protocol is in [docs/green_gem_training.md](docs/green_gem_training.md).
 
 ## Fastest path: desktop operation window
 
@@ -38,6 +40,8 @@ python app.py
 On Windows, after the environment is installed, you can also run `powershell -ExecutionPolicy Bypass -File run_desktop.ps1`.
 
 In the window, choose the panorama folder, map image, output folder, and model weights. The defaults point to the included example. Then click **Run detection and mapping**. The window shows the processing log and **Open latest result** opens the generated local result page.
+
+When deploying Green Gem weights, select the detector trained with the one-class `tomato` dataset and a classifier whose folders/classes are exactly `immature`, `mature_green`, `harvest_ready`, `overripe_or_defective`, and `other`.
 
 Use **Replay included results** when you want to inspect the archived output without loading models. Use **Verify included data** to check the SHA-256 manifest of the curated sample.
 
@@ -83,7 +87,7 @@ python scripts/replay_observations.py --source demo --output outputs/replay
 python -m unittest discover -s tests -v
 ```
 
-The saved replay is expected to generate 68 observations from 13 frames and 26 frame-side positions: 28 immature, 31 green mature, 9 discoloration, and 0 mature. Replay reuses archived detections; it does not run the models again.
+The saved replay is expected to generate 68 legacy observations from 13 frames and 26 frame-side positions: 28 immature, 31 green mature, 9 discoloration, and 0 mature. Replay reuses archived detections; it does not run the models again.
 
 ## External pose and range data
 
@@ -108,6 +112,7 @@ To use range measurements, add both `--pose-csv` and `--range-manifest`. Range a
 - Range-band filtering and association are candidates until evaluated against independently annotated geometry.
 - The included benchmark values are archived development-validation records; the evaluation images are not included and the validation split was used for model selection.
 - The repository is designed for offline processing. It does not claim real-time end-to-end inference.
+- The supplied legacy weights do not establish Green Gem harvest readiness. A yellow halo is cultivar-specific and requires field-verified labels and held-out-route validation.
 
 These limits mirror the revised manuscript and prevent the sample visualization from being overstated as a validated fruit-level 3D reconstruction.
 
@@ -126,6 +131,18 @@ interfaces/ros_msgs/       Preserved message schemas for external adapters
 docs/                      Interfaces, provenance, paper scope, manuscript snapshot
 tests/                     Core processing and desktop-command tests
 ```
+
+## Train the Green Gem model
+
+The repository includes a crop-generation tool and a thin Ultralytics training entry point; neither downloads third-party data or changes the archived evidence.
+
+```powershell
+python scripts/prepare_green_gem_classifier.py --annotations labels.csv --images data/source_views --output data/training/green_gem_classifier
+python scripts/train_green_gem.py --task detect --data training/green_gem_detector.yaml --model yolo11s.pt --imgsz 1280 --epochs 160
+python scripts/train_green_gem.py --task classify --data data/training/green_gem_classifier --model yolo11s-cls.pt --imgsz 224 --epochs 120
+```
+
+Read [docs/green_gem_training.md](docs/green_gem_training.md) before preparing labels. It defines the four classes, route/date split rule, external-data licence boundary, and deployment evidence required for a replacement model.
 
 ## Manuscript and evidence
 

@@ -42,7 +42,7 @@ class RevisionTests(unittest.TestCase):
             self.assertEqual(summary["association_status"],"spatial_candidates")
             self.assertTrue((root/"out/runtime.json").exists())
             html=(root/"out/index.html").read_text()
-            self.assertIn("Estimated spatial height",html)
+            self.assertIn("spatially indexed observations",html)
 
     def point(self, frame="a.jpg", x=0, source="pose_csv", range_m=1):
         pose = Pose(frame,x,0,1.2,0,0,0,source,"rowA")

@@ -87,8 +87,8 @@ class CoreTests(unittest.TestCase):
 
     def test_html_report_is_english_only(self):
         self.assertIn('<html lang="en">', HTML_TEMPLATE)
-        self.assertIn("3D Tomato Ripeness Distribution", HTML_TEMPLATE)
-        self.assertIn("2D Spatial Map", HTML_TEMPLATE)
+        self.assertIn("Row-level observation map", HTML_TEMPLATE)
+        self.assertIn("visual observation bundles only", HTML_TEMPLATE)
         self.assertIsNone(re.search(r"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]", HTML_TEMPLATE))
 
 

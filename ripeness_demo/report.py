@@ -189,7 +189,7 @@ def write_summary(
     return summary
 
 
-HTML_TEMPLATE = r'''<!doctype html>
+LEGACY_COLUMN_TEMPLATE = r'''<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -317,6 +317,36 @@ window.addEventListener('resize',resize);resize();
 </body></html>'''
 
 
+# The current view deliberately avoids implying that a frame-side observation
+# column is a reconstructed tomato plant.  The dashed bundle is an image-space
+# grouping aid, not a detected stem or a verified fruit truss.
+HTML_TEMPLATE = r'''<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PRMS | Observation Map</title>
+<style>
+:root{--ink:#173d30;--muted:#61756b;--line:#d7e3db;--green:#2f6f4f;--bg:#edf4ef}*{box-sizing:border-box}body{margin:0;background:linear-gradient(145deg,#edf5ed,#faf8ef);color:var(--ink);font:14px Inter,system-ui,sans-serif}header,main{max-width:1280px;margin:auto}header{padding:28px 24px 14px}h1{margin:0;font-size:clamp(26px,4vw,42px);letter-spacing:-.04em}h2{font-size:17px;margin:0 0 10px}header p,.note,.subtle{color:var(--muted);line-height:1.55}.wrap{padding:0 24px 44px}.panel,.card{background:#ffffffed;border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 28px #31503d12}.panel{padding:15px}.toolbar,.legend,.cards,.count-line{display:flex;flex-wrap:wrap;gap:10px}.toolbar{align-items:center;margin:8px 0 10px}.legend span,.count-line span{display:inline-flex;align-items:center;gap:5px;color:var(--muted);font-size:12px}.dot{width:10px;height:10px;border-radius:50%;border:1px solid #173d3055;display:inline-block}.field{width:100%;min-height:570px;display:block;border:1px solid var(--line);border-radius:12px;background:#f3f7f3}.row-label{fill:#173d30;font-size:12px;font-weight:650}.trajectory{fill:none;stroke:#167a91;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;opacity:.75}.anchor{fill:#2f6f4f;stroke:#fff;stroke-width:2}.anchor.empty{fill:#a7b4ac}.bundle{fill:none;stroke:#47875f;stroke-width:2.4;stroke-dasharray:5 5;stroke-linecap:round;opacity:.72}.fruit{stroke:#fff;stroke-width:1.5;cursor:pointer}.fruit:hover,.selected .fruit{stroke:#122a20;stroke-width:3}.selected .anchor{stroke:#122a20;stroke-width:3}.hint{fill:#fff;stroke:#a9bbb0;stroke-width:1}.layout{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(285px,.6fr);gap:16px;margin-top:16px}.photo-placeholder,.photo-detail{min-height:300px;border:1px dashed var(--line);border-radius:12px;background:#f4f7f4}.photo-placeholder{display:grid;place-items:center;padding:25px;text-align:center;color:var(--muted)}.photo-detail[hidden]{display:none}.photo-detail{margin:0;overflow:hidden;border-style:solid}.photo-detail img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover}.photo-detail figcaption{padding:11px 13px;color:var(--muted);line-height:1.55}.cards{margin-top:14px}.card{padding:13px 16px;min-width:125px}.card b{font-size:25px;display:block}.card span{color:var(--muted);font-size:12px}.warning{margin:12px 0 0;padding:10px 12px;border-left:4px solid #c79523;background:#fff8df;color:#5d4a13;border-radius:6px;font-size:12px;line-height:1.55}@media(max-width:850px){.layout{grid-template-columns:1fr}.field{min-height:430px}.wrap{padding:0 14px 28px}header{padding:22px 14px 12px}}
+</style></head><body><header><h1>PRMS Observation Map</h1><p>Panoramic Green Gem tomato monitoring · spatially indexed observations</p></header><main class="wrap">
+<section class="panel"><h2>Row-level observation map <span class="subtle">fruit circles and bundle candidates</span></h2><div class="toolbar" id="filters"></div><svg id="field" class="field" role="img" aria-label="Greenhouse row map with tomato observation bundles"></svg><div class="legend" id="legend"></div><div class="warning">Dashed green lines connect detections from the same frame and crop-row side. They are visual observation bundles only—not reconstructed stems, confirmed trusses, or unique plant identities.</div></section>
+<section class="layout"><article class="panel"><h2>Selected observation</h2><div class="photo-placeholder" id="placeholder">Select a fruit circle or green anchor to inspect its original annotated panorama view.</div><figure class="photo-detail" id="detail" hidden><img id="photo" alt="Annotated tomato panorama view"><figcaption><strong id="where"></strong><div id="meta"></div><div class="count-line" id="counts"></div></figcaption></figure></article><article class="panel"><h2>How to read this view</h2><p class="note">A green anchor marks one frame-side observation. Fruit circles use the mapped detection estimates. Circle size represents confidence, colour represents the model label, and the route is shown in blue.</p><p class="note">Use the original image at left to review suspected missed fruit. This page preserves the difference between an observation bundle and a biologically verified vine.</p></article></section>
+<h2 style="margin:22px 2px 10px">Summary statistics</h2><section class="cards" id="cards"></section></main>
+<script>
+const DATA=__DATA__, colors=DATA.colors, plants=DATA.plants, summary=DATA.summary, svg=document.querySelector('#field');
+const labels={processed_frames:'Processed frames',plant_columns:'Observation positions',detections:'Detected fruit',immature:'Immature',mature_green:'Mature green',harvest_ready:'Harvest ready',overripe_or_defective:'Overripe / defective',green_mature:'Green mature (legacy)',discoloration:'Discoloration (legacy)',mature:'Mature (legacy)',empty:'No detection'};
+const enabled=Object.fromEntries(Object.keys(colors).map(key=>[key,true]));
+document.querySelector('#filters').innerHTML=Object.entries(colors).map(([key,color])=>`<label><input type="checkbox" data-k="${key}" checked><i class="dot" style="background:${color}"></i>${labels[key]}</label>`).join('');
+document.querySelectorAll('#filters input').forEach(node=>node.addEventListener('change',()=>{enabled[node.dataset.k]=node.checked;render()}));
+document.querySelector('#legend').innerHTML=Object.entries(colors).map(([key,color])=>`<span><i class="dot" style="background:${color}"></i>${labels[key]}</span>`).join('')+`<span><i class="dot" style="background:#2f6f4f"></i>Frame-side anchor</span><span><i class="dot" style="background:#167a91"></i>Camera route</span>`;
+const metric=[['processed_frames',summary.processed_frames],['plant_columns',summary.plant_columns],['detections',summary.detections],...Object.entries(summary.class_counts)];document.querySelector('#cards').innerHTML=metric.map(([k,v])=>`<div class="card"><b style="color:${colors[k]||'#173d30'}">${v}</b><span>${labels[k]||k}</span></div>`).join('');
+const gallery=new Map(DATA.gallery.map(item=>[`${item.frame}|${item.side}`,item]));const W=DATA.map_size.width,H=DATA.map_size.height;let selected=null;
+function position(item){return [item.map_px,item.map_py]};function fruitPosition(plant,cube,index){const x=cube.x/DATA.extent.x*W,y=cube.y/DATA.extent.x*W;return [Number.isFinite(x)?x:plant.map_px,Number.isFinite(y)?y:plant.map_py]}
+function esc(text){return String(text).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function select(plant){selected=plant.plant_id;const item=gallery.get(`${plant.frame}|${plant.side}`), detail=document.querySelector('#detail'), holder=document.querySelector('#placeholder');holder.hidden=true;detail.hidden=false;document.querySelector('#photo').src=item?.path||'';document.querySelector('#where').textContent=plant.plant_id;document.querySelector('#meta').textContent=`${plant.frame} · ${plant.side} side · ${plant.total} detected fruit`;document.querySelector('#counts').innerHTML=Object.entries(plant.counts).filter(([,n])=>n).map(([k,n])=>`<span><i class="dot" style="background:${colors[k]}"></i>${labels[k]} ${n}</span>`).join('')||'<span>No detected fruit</span>';render()}
+function render(){svg.setAttribute('viewBox',`0 0 ${W} ${H}`);let markup=`<image href="map_base.png" x="0" y="0" width="${W}" height="${H}" opacity=".32"/>`;const route=DATA.trajectory.map(p=>`${p.map_px},${p.map_py}`).join(' ');markup+=`<polyline class="trajectory" points="${route}"/>`;
+for(const plant of plants){const isSelected=plant.plant_id===selected, visible=plant.cubes.filter(c=>enabled[c.class_name]), [ax,ay]=position(plant);const dots=visible.map((c,i)=>fruitPosition(plant,c,i));let bundle='';if(dots.length){const ordered=[...dots].sort((a,b)=>a[1]-b[1]);bundle=`<polyline class="bundle" points="${ax},${ay} ${ordered.map(p=>p.join(',')).join(' ')}"/>`;}const circles=visible.map((cube,i)=>{const [x,y]=dots[i],r=4+Math.round(cube.confidence*5);return `<circle class="fruit" data-id="${esc(plant.plant_id)}" cx="${x}" cy="${y}" r="${r}" fill="${colors[cube.class_name]}"/>`}).join('');markup+=`<g class="${isSelected?'selected':''}" data-id="${esc(plant.plant_id)}">${bundle}<circle class="anchor ${plant.total?'':'empty'}" cx="${ax}" cy="${ay}" r="6"/><text class="row-label" x="${ax+8}" y="${ay-8}">${esc(plant.plant_id)}</text>${circles}</g>`;}svg.innerHTML=markup;svg.querySelectorAll('[data-id]').forEach(node=>node.addEventListener('click',()=>{const plant=plants.find(p=>p.plant_id===node.dataset.id);if(plant)select(plant)}));}
+render();
+</script></body></html>'''
+
+
 def write_html_report(
     output_dir: Path,
     summary: dict[str, object],
@@ -330,7 +360,7 @@ def write_html_report(
 ) -> None:
     data = {
         "summary": summary,
-        "colors": CLASS_COLORS,
+        "colors": {name: CLASS_COLORS[name] for name in class_order_for([item.class_name for item in detections])},
         "points": [item.to_dict() for item in detections],
         "plants": _plant_columns(poses, detections, map_size, map_width_m, row_offset_m),
         "trajectory": [asdict(item) for item in poses],

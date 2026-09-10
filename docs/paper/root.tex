@@ -30,8 +30,8 @@
 
 % Major textual revision, 2026-09-08. Existing figure assets retained pending redraw.
 % AUTHOR CHECK comments identify facts that require author confirmation.
-\abstract{Greenhouse tomato inspection requires mobile image acquisition across narrow aisles and terrain transitions, together with interpretable records of crop ripeness. This study presents a wheel-legged quadruped platform combining LiDAR-based navigation, an RGB-D camera for near-field terrain sensing, and panoramic acquisition. Equirectangular images are geometrically reprojected into perspective views, and the left and right views are processed offline using a tomato detector followed by a ripeness classifier. Five field visits between October and December 2025 provided qualitative demonstrations of row traversal, inter-row transition, and obstacle negotiation in a commercial greenhouse. A separate reproducibility example comprises 13 sequential panoramas and 68 saved detection observations across 26 frame-side positions. Archived development-validation records report detector precision of 0.697, recall of 0.694, mAP at an intersection-over-union threshold of 0.5 of 0.697, and mAP averaged over thresholds from 0.5 to 0.95 of 0.339; classifier top-1 accuracy was 0.810 on 42 validation crops. These validation data were used for model selection and do not constitute an independent field benchmark. The panorama example uses an assumed trajectory and row geometry, so its three-dimensional display organizes observations rather than verifying fruit locations or unique-fruit counts. The results support the feasibility of bilateral panoramic acquisition and offline ripeness summarization and identify the measurements needed for spatially accurate crop mapping. Code and panorama examples for offline ripeness detection and spatial observation mapping are available at \url{https://github.com/Alaurb/prms-system}; navigation implementation is outside the repository scope.}
-\keyword{tomato ripeness; wheel-legged quadruped; panoramic imaging; offline recognition; observation mapping; reproducibility}
+\abstract{Greenhouse tomato inspection requires mobile image acquisition across narrow aisles and interpretable records of crop maturity. This study presents a wheel-legged quadruped platform for panoramic image acquisition, together with an offline perception workflow. Equirectangular images are geometrically reprojected into perspective views, and the left and right views are processed using a tomato detector followed by a maturity classifier. For the Green Gem cultivar, which remains predominantly green when ripe, the intended field taxonomy is immature, mature-green, harvest-ready, and overripe-or-defective; harvest readiness is defined visually by a stable yellow halo rather than red colour. Five field visits between October and December 2025 provided qualitative demonstrations of image acquisition during greenhouse traversal. A separate reproducibility example comprises 13 sequential panoramas and 68 saved legacy detection observations across 26 frame-side positions. Archived development-validation records are retained for traceability but predate the Green Gem taxonomy, were used for model selection, and do not constitute an independent benchmark for harvest readiness. The panorama example uses an assumed trajectory and row geometry. Its three-dimensional fruit-bunch display organizes frame-side observations and is not a reconstruction of physical stems, trusses, unique fruits, or metric fruit locations. The study therefore establishes an offline acquisition, observation, and reporting workflow while identifying the field labels, measured geometry, and independent evaluation required for cultivar-specific deployment. Code, data interfaces, and a Green Gem training protocol are available at \url{https://github.com/Alaurb/prms-system}; navigation implementation is outside the repository scope.}
+\keyword{Green Gem tomato; visual harvest maturity; wheel-legged quadruped; panoramic imaging; offline recognition; observation mapping; reproducibility}
 \begin{document}
 \section{Introduction}
 Monitoring crop ripeness is important for precision management and harvesting decisions~\cite{wang2024lightweight,yang2023strawberry}. Mobile platforms can extend image acquisition along greenhouse rows, but terrain, viewpoint, occlusion, and interpretation of repeated observations must be considered together. In this paper, open-facility environments refer to greenhouse cultivation areas containing structured aisles, soil surfaces, and transitions between them.
@@ -54,7 +54,7 @@ Ripeness recognition methods have progressed from manual inspection and color-ba
 Agricultural mapping research has increasingly integrated perception, localization, and semantic information. Visual and LiDAR-based SLAM methods support navigation and reconstruction under occlusion, repetitive textures, and variable illumination~\cite{islam2023agri,cuaran2024under,han2023visual}. Object-level approaches such as Tree-SLAM~\cite{rapado2025tree} and ROLS~\cite{nellithimaru2019rols} associate detected crops with spatial locations for orchard mapping, fruit counting, and yield estimation. LiDAR--vision semantic mapping~\cite{pan2024novel} and crop-aware SLAM frameworks~\cite{yuan2024simultaneous} further demonstrate the potential of spatial crop analysis. However, existing studies focus primarily on fruit localization, counting, or object distribution; ripeness-aware spatiotemporal mapping in greenhouses remains insufficiently investigated, particularly on platforms capable of traversing narrow aisles and uneven terrain.
 
 
-This study investigates a workflow combining a wheel-legged quadruped, conventional navigation, panoramic acquisition, offline recognition, and observation visualization. The contribution is the integration and demonstration of these components, rather than a new detector architecture or path planner. Qualitative field sequences and a separate panorama-based reproduction example provide different types of evidence. Because measured localization trajectories are unavailable for the supplied example, its spatial assumptions are explicitly separated from the robot's field navigation.
+This study investigates a workflow combining a wheel-legged quadruped, conventional navigation, panoramic acquisition, offline recognition, and observation visualization. The contribution is the integration and transparent demonstration of these components for a green-when-ripe cultivar, rather than a new detector architecture, path planner, truss-reconstruction algorithm, or commercial harvesting system. Qualitative field sequences and a separate panorama-based reproduction example provide different types of evidence. Because measured localization trajectories are unavailable for the supplied example, its spatial assumptions are explicitly separated from the robot's field navigation.
 
 \section{Materials and Methods}
 \subsection{Monitoring Objective and Ripeness Categories}
@@ -64,28 +64,28 @@ For frame $i$ and side view $s$, recognition produces an observation set
 \end{equation}
 where $\mathbf{b}_j$ is an image bounding box, $c_j$ is a predicted ripeness class, and $q_j$ is a confidence value. The same tomato may contribute several observations across frames. Assigning persistent identities and physical coordinates requires additional geometric evidence.
 
-Four visually defined categories are used: immature, green mature, discoloration, and mature (Figure~\ref{fig2_maturity_period}). Table~\ref{table_maturity} summarizes their image-based interpretation. Internal seed development is not observable in the supplied external images and is not independently established by these labels.
-% AUTHOR CHECK: Verify the exact applicability and wording of GH/T 1193-2021 before restoring the original standard-based classification claim.
+For Green Gem tomatoes, four visually defined harvest-maturity categories are intended: immature, mature-green, harvest-ready, and overripe-or-defective (Figure~\ref{fig2_maturity_period}). Harvest readiness is determined by the grower's stable yellow-halo rule. Table~\ref{table_maturity} summarizes the operational image-based interpretation. Internal seed development, firmness, and soluble-solids content are not observable in the supplied panoramas and are not inferred by these labels.
+% AUTHOR CHECK: Redraw Figure 2 using Green Gem fruit and verify the field team's yellow-halo threshold before submission.
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=0.62\linewidth]{fig2_ripeness.pdf}
-	\caption{Four visually defined ripeness stages: (a) immature, (b) green mature, (c) discoloration, and (d) mature.}
+\caption{Green Gem visual harvest-maturity categories: (a) immature, (b) mature-green, (c) harvest-ready, indicated by a stable yellow or yellow-green halo, and (d) overripe-or-defective. The figure must be redrawn with cultivar-specific examples before submission.}
 	\label{fig2_maturity_period}
 \end{figure}
 \begin{table}[H]
-\caption{Visible appearance used to describe the four ripeness categories. Boundary cases require a consistent manual annotation protocol.}
+\caption{Visible appearance used to describe the four Green Gem harvest-maturity categories. Boundary cases require a field-verified manual annotation protocol.}
 \centering
 \begin{tabular}{p{2.5cm}p{7.0cm}}
 \toprule
 Category & Visible appearance\\
 \midrule
-Immature & Predominantly green fruit with an apparently underdeveloped appearance; size alone is not a reliable criterion.\\
+Immature & Dark-green or developing fruit without a yellow halo; apparent underdevelopment is assessed visually, and size alone is not a reliable criterion.\\
 \midrule
-Green mature & Developed fruit that remains green or whitish green; separation from immature fruit can be ambiguous in images.\\
+Mature-green & Developed fruit that remains green and has no stable yellow halo; it is not yet labelled harvest-ready.\\
 \midrule
-Discoloration & Visible transition in surface colour, including yellow or pale-red regions.\\
+Harvest-ready & Green fruit with a stable yellow or yellow-green halo that meets the grower's visual harvest rule. The halo threshold must be documented during annotation.\\
 \midrule
-Mature & Predominantly mature external colour for the cultivar; redness alone does not generalize to all cultivars.\\
+Overripe or defective & Fruit with excessive yellowing or softening, cracking, disease signs, or another non-marketable condition.\\
 \bottomrule
 \end{tabular}
 \label{table_maturity}
@@ -141,7 +141,7 @@ The supplied example contains $5760\times2880$ panoramas and uses $1440\times144
 	\label{fig5_pano}
 \end{figure}
 \subsubsection{Detection and Classification}
-The supplied processing implementation uses a two-stage pipeline: a tomato detector produces candidate crops, and a classifier assigns ripeness categories. The classifier includes the four ripeness classes and an additional category for non-target or unsuitable crops, which is excluded from ripeness outputs. The native class labels are normalized to the four ripeness names used in this manuscript.
+The supplied processing implementation uses a two-stage pipeline: a tomato detector produces candidate crops, and a classifier assigns maturity categories. The target Green Gem classifier includes the four categories in Table~\ref{table_maturity} and an additional \texttt{other} category for non-target or unsuitable crops, which is excluded from maturity outputs. The bundled weights and saved outputs predate this taxonomy and are retained only as legacy reproducibility material; they must not be interpreted as a validated Green Gem harvest-readiness model.
 
 The reproduction-example configuration combines original-view and brightness-enhanced inference, using a brightness gain of 1.25 and detector input size 1280. These settings describe the available example. They do not establish that every historical illustration used an identical model checkpoint. Processing sequential frames offline is distinct from real-time inference on the moving robot.
 % AUTHOR CHECK: Reconcile model architecture variants, training histories and checkpoint hashes with the original field figures.
@@ -155,7 +155,7 @@ A calibrated fruit-coordinate estimate would require
 \end{equation}
 where $\hat{\mathbf{d}}_C$ is a unit viewing ray, $\rho$ is measured range along the ray, and $(R_{WC},\mathbf{t}_{WC})$ is the camera pose at acquisition time. Robot position alone cannot determine the tomato's position. This equation specifies the geometric inputs needed for metric mapping, not a validated computation on the supplied data.
 
-Vertical image position can be retained through the bounding box. A pixel coordinate is not a physical fruit height; metric height additionally depends on geometry. Any row-plane-based estimate must state its assumed distance and coordinate provenance. In contrast, maturity-grouped stacks are count graphics whose vertical axis must not be interpreted as physical elevation (Figure~\ref{fig6_mapping}).
+Vertical image position can be retained through the bounding box. A pixel coordinate is not a physical fruit height; metric height additionally depends on geometry. Any row-plane-based estimate must state its assumed distance and coordinate provenance. The repository therefore uses a three-dimensional observation-bunch display in which fruit symbols are visually grouped around a thin vine-like guide. This guide represents a frame-side observation group, not a reconstructed stem, truss, or physical plant topology (Figure~\ref{fig6_mapping}).
 
 Left/right view selection alone does not exclude fruit in background rows. Without measured range or independently validated row segmentation, nearest-row membership remains uncertain. Cross-frame association also requires validation before detections are counted as unique fruits. This study therefore interprets the example counts as observations, with frame-side positions serving as proxies rather than identified plants.
 
@@ -164,7 +164,7 @@ Each inspection produces a session output. Longitudinal mapping would require re
 	\begin{adjustwidth}{-\extralength}{0cm}
 	\centering
 	\includegraphics[width=\linewidth]{fig6_mapping.pdf}
-	\caption{Observation-processing workflow and geometric inputs required for metric mapping. In the supplied panorama example, pose and row geometry are assumed. Count stacks represent observations, not physical fruit heights.}
+\caption{Observation-processing workflow and geometric inputs required for metric mapping. In the supplied panorama example, pose and row geometry are assumed. The displayed vine-like guides organize frame-side observations and do not represent reconstructed stems, trusses, or physical fruit heights.}
 	\label{fig6_mapping}
 	\end{adjustwidth}
 \end{figure}
@@ -260,9 +260,9 @@ Selected candidate & 0.697 & 0.694 & 0.697 & 0.339\\
 \end{table}
 
 \subsection{Reproduction Example and Visualization}
-The saved-prediction example contains 68 detections across 13 panoramas and 26 left/right observation positions: 28 immature, 31 green-mature, nine discoloration-stage, and zero mature predictions. Twenty observation positions contain at least one detection. These are model-output counts. Zero mature predictions does not establish absence of mature fruit, and this sample cannot demonstrate performance on all four classes.
+The saved-prediction example contains 68 legacy detections across 13 panoramas and 26 left/right observation positions: 28 immature, 31 green-mature, nine discoloration-stage, and zero mature predictions. Twenty observation positions contain at least one detection. These are legacy model-output counts, not Green Gem harvest-maturity labels. The sample cannot demonstrate performance on the four Green Gem categories in Table~\ref{table_maturity}.
 
-The example output was regenerated by replaying saved predictions. Its trajectory is synthetic, its row geometry assumed, and its columns frame-side proxies. It therefore supports inspection of data organization and visualization, but not metric fruit localization or unique-fruit counting. The example is distinct from the complete set of historical field illustrations.
+The example output was regenerated by replaying saved predictions. Its trajectory is synthetic, its row geometry assumed, and its frame-side groups are observation proxies. It therefore supports inspection of data organization and visualization, but not metric fruit localization, unique-fruit counting, or biological vine reconstruction. The example is distinct from the complete set of historical field illustrations.
 
 \section{Discussion}
 The field sequences support the feasibility of moving a wheel-legged platform through selected greenhouse aisles and transitions while acquiring images. They do not provide a comparative mobility benchmark: navigation error, energy use, traversal time, minimum clearance, and scenario-level success rates were not measured in the available records. Superior mobility, guaranteed avoidance, and validated autonomous gait switching remain unsupported without additional evidence.
@@ -277,9 +277,9 @@ Observation organization and fruit-level mapping answer different questions. The
 Harvesting guidance, quantitative yield estimation and persistent growth monitoring are prospective applications. The available panoramas can support projection checks, image annotation and offline recognition evaluation. Navigation performance and absolute spatial accuracy require additional measurements, which cannot be replaced by a visually plausible map.
 
 \section{Conclusions}
-This study presents a wheel-legged quadruped inspection workflow combining panoramic acquisition with offline tomato detection, ripeness classification and observation visualization. Field sequences qualitatively demonstrate selected mobility scenarios. Archived development-validation records provide limited quantitative evidence for recognition, while a 13-panorama example offers a tractable starting point for reproducing observation processing.
+This study presents a wheel-legged quadruped inspection workflow combining panoramic acquisition with offline tomato detection, Green Gem visual harvest-maturity classification, and observation visualization. Field sequences qualitatively demonstrate selected mobility scenarios. Archived legacy development-validation records are retained for traceability, while a 13-panorama example offers a tractable starting point for reproducing observation processing rather than a Green Gem accuracy claim.
 
-The current evidence does not establish independent field recognition accuracy, real-time end-to-end operation, unique-fruit counting or metric three-dimensional fruit positions. Priority evaluation tasks are independent image annotation, reconciliation of model and training provenance, measured camera geometry, and recorded navigation and localization trials. These additions would permit direct testing of the workflow's spatial and operational performance.
+The current evidence does not establish independent Green Gem harvest-readiness accuracy, real-time end-to-end operation, unique-fruit counting, biological truss reconstruction, or metric three-dimensional fruit positions. Priority evaluation tasks are field-verified four-class annotation, independent route/date-held-out evaluation, reconciliation of legacy-model provenance, measured camera geometry, and recorded navigation and localization trials. These additions would permit direct testing of the workflow's spatial and operational performance.
 
 \authorcontributions{Conceptualization, Z.X.; methodology, Z.X. and J.L.; software, J.L.; formal analysis, J.L.; investigation, J.L., Z.W. and S.S.; resources, Z.M.; data curation, J.L., Z.W. and S.S.; writing---original draft preparation, J.L.; writing---review and editing, Z.X.; visualization, J.L.; supervision, Z.X. and Z.M.; project administration, Z.X. and Z.M. All authors have read and agreed to the published version of the manuscript.}
 
@@ -289,7 +289,7 @@ The current evidence does not establish independent field recognition accuracy, 
 
 \informedconsent{The individual participating in the pedestrian-avoidance test was a member of the research team and provided informed consent to participate. No identifiable personal information was collected or published.}
 
-\dataavailability{The PRMS system repository is available at \url{https://github.com/Alaurb/prms-system}. The repository is organized around offline panoramic ripeness detection and spatial observation mapping, with interfaces for externally supplied camera poses and registered range data. The prepared reproduction package contains 13 frames, model files, and saved outputs. The example does not include measured LiDAR poses or ROS bag recordings. Navigation code is outside the repository scope, and the package does not reproduce the field navigation trials.}
+\dataavailability{The PRMS system repository is available at \url{https://github.com/Alaurb/prms-system}. The repository is organized around offline panoramic detection and spatial observation mapping, with interfaces for externally supplied camera poses and registered range data. It includes a Green Gem training protocol defining immature, mature-green, harvest-ready, and overripe-or-defective classes, plus legacy model files and saved outputs for software replay only. The prepared reproduction package contains 13 frames but does not include field-verified Green Gem labels, measured LiDAR poses, or ROS bag recordings. Navigation code is outside the repository scope, and the package does not reproduce the field navigation trials.}
 % AUTHOR CHECK: Supply a verified release identifier, archive URL, file manifest, and final reproduction instructions before submission.
 
 \acknowledgments{The authors thank the management of Sunqiao Yijia Farm for permission to conduct the field experiments and image acquisition. During the preparation of this manuscript, the authors used OpenAI Codex for English-language editing, formatting, and drafting assistance. The authors reviewed and edited the output and take full responsibility for the content of this publication.}

@@ -144,6 +144,8 @@ python scripts/train_green_gem.py --task classify --data data/training/green_gem
 
 Read [docs/green_gem_training.md](docs/green_gem_training.md) before preparing labels. It defines the four classes, route/date split rule, external-data licence boundary, and deployment evidence required for a replacement model.
 
+The current scientific and product-positioning decisions are recorded in [docs/strategy_green_gem_20260911.md](docs/strategy_green_gem_20260911.md). In particular, the repository does not claim a first tomato-monitoring system, biological vine reconstruction, or validated Green Gem accuracy before field-labelled evaluation.
+
 ## Manuscript and evidence
 
 The original preprint is retained at [docs/paper/preprints202608.0999.v1.pdf](docs/paper/preprints202608.0999.v1.pdf). The revised manuscript source snapshot is [docs/paper/root.tex](docs/paper/root.tex). It is intentionally clear about which results are archived demonstrations and which claims need further measurement.

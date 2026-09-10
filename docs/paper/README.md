@@ -1,6 +1,6 @@
 # Associated Manuscript
 
-`root.tex` is the current author revision, with Jinru Lyu first and Zhenfeng Xue / Zhonghua Miao as co-corresponding authors. It uses the lightly revised title *Ripeness Monitoring in Open-Facility Environments Using a Quadruped Robot and Panoramic AI Recognition* and links this repository in the abstract. It requires the existing MDPI template, bibliography and figure assets from the manuscript package. This source snapshot is separate from the unchanged published preprint below.
+`root.tex` is the current author revision, with Jinru Lyu first and Zhenfeng Xue / Zhonghua Miao as co-corresponding authors. It uses the lightly revised title *Ripeness Monitoring in Open-Facility Environments Using a Quadruped Robot and Panoramic AI Recognition*, links this repository in the abstract, and defines the intended Green Gem yellow-halo harvest-maturity taxonomy. It requires the existing MDPI template, bibliography and figure assets from the manuscript package. This source snapshot is separate from the unchanged published preprint below.
 
 This directory contains the manuscript associated with this repository:
 

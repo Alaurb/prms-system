@@ -12,6 +12,7 @@ __pycache__/
 data/raw/
 data/processed/
 outputs/
+tmp/
 third_party/
 .venv/
 data/training/

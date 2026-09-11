@@ -24,9 +24,16 @@ GREEN_GEM_CLASS_ORDER = ("overripe_or_defective", "harvest_ready", "mature_green
 LEGACY_CLASS_ORDER = ("mature", "discoloration", "green_mature", "immature")
 
 
-def class_order_for(class_names: set[str] | list[str] | tuple[str, ...]) -> tuple[str, ...]:
+def class_order_for(class_names: set[str] | list[str] | tuple[str, ...], taxonomy: str | None = None) -> tuple[str, ...]:
     """Return a display order without silently relabelling archived predictions."""
-    # `immature` exists in both taxonomies, so it cannot determine the schema.
+    if taxonomy is not None:
+        if taxonomy not in {"legacy", "green_gem"}:
+            raise ValueError(f"Unknown taxonomy: {taxonomy}")
+        order = GREEN_GEM_CLASS_ORDER if taxonomy == "green_gem" else LEGACY_CLASS_ORDER
+        if set(class_names) - set(order):
+            raise ValueError("Prediction classes conflict with configured taxonomy")
+        return order
+    # Compatibility for old callers; production uses model metadata.
     if set(class_names) & {"mature_green", "harvest_ready", "overripe_or_defective"}:
         return GREEN_GEM_CLASS_ORDER
     return LEGACY_CLASS_ORDER
@@ -49,6 +56,7 @@ CLASS_ALIASES = {
     "half-ripe": "discoloration",
     "half_ripe": "discoloration",
     "mature": "mature",
+    "maturity": "mature",
     "ripe": "mature",
     "red": "mature",
 }
@@ -60,6 +68,9 @@ class Detection:
     confidence: float
     bbox: tuple[float, float, float, float]
     detector: str
+    detector_confidence: float | None = None
+    classifier_confidence: float | None = None
+    raw_class: str = ""
 
     @property
     def center(self) -> tuple[float, float]:
@@ -71,6 +82,20 @@ class Detector(Protocol):
     name: str
 
     def detect(self, image: Image.Image) -> list[Detection]: ...
+
+
+def model_taxonomy(names) -> str:
+    """Validate the complete model vocabulary, including classes absent in a run."""
+    labels = {str(n).lower().strip() for n in names.values()}
+    unknown = labels - set(CLASS_ALIASES) - {"other"}
+    if unknown:
+        raise ValueError(f"Unmapped model classes: {sorted(unknown)}")
+    canonical = {CLASS_ALIASES[n] for n in labels if n != "other"}
+    green = canonical & (set(GREEN_GEM_CLASS_ORDER) - {"immature"})
+    legacy = canonical & (set(LEGACY_CLASS_ORDER) - {"immature"})
+    if green and legacy or not (green or legacy):
+        raise ValueError("Mixed or ambiguous model taxonomy")
+    return "green_gem" if green else "legacy"
 
 
 def _box_iou(
@@ -168,6 +193,7 @@ class ColorShapeDetector:
     """
 
     name = "color_shape_fallback_green_gem_proxy"
+    taxonomy = "green_gem"
 
     def __init__(self, analysis_size: int = 360, max_detections: int = 12):
         self.analysis_size = analysis_size
@@ -261,6 +287,7 @@ class YoloRipenessDetector:
         except ImportError as exc:
             raise RuntimeError("Ultralytics is not installed. Install optional-requirements.txt first.") from exc
         self.model = YOLO(str(weights))
+        self.taxonomy = model_taxonomy(self.model.names)
         self.confidence = confidence
 
     def detect(self, image: Image.Image) -> list[Detection]:
@@ -289,6 +316,7 @@ class TwoStageYoloDetector:
         confidence: float = 0.25,
         brightness_gain: float = 1.25,
         detector_imgsz: int = 1280,
+        classifier_imgsz: int | None = None,
     ):
         try:
             from ultralytics import YOLO
@@ -296,6 +324,11 @@ class TwoStageYoloDetector:
             raise RuntimeError("Ultralytics is not installed. Install optional-requirements.txt first.") from exc
         self.detector = YOLO(str(detector_weights))
         self.classifier = YOLO(str(classifier_weights))
+        self.classifier_imgsz = classifier_imgsz or self.classifier.overrides.get("imgsz", 224)
+        self.taxonomy = model_taxonomy(self.classifier.names)
+        if {str(n).lower().strip() for n in self.detector.names.values()} != {"tomato"}:
+            raise ValueError("Two-stage detector must have exactly one class: tomato")
+        self.audit = []
         self.confidence = confidence
         self.brightness_gain = max(1.0, float(brightness_gain))
         self.detector_imgsz = max(320, int(detector_imgsz))
@@ -303,6 +336,7 @@ class TwoStageYoloDetector:
 
     def detect(self, image: Image.Image) -> list[Detection]:
         rgb = np.asarray(image.convert("RGB"))
+        self.audit = []
         bgr = rgb[..., ::-1].copy()
         detector_inputs = [bgr]
         if self.brightness_gain > 1.001:
@@ -330,16 +364,22 @@ class TwoStageYoloDetector:
             if ix2 <= ix1 or iy2 <= iy1:
                 continue
             crop = bgr[iy1:iy2, ix1:ix2]
-            classification = self.classifier.predict(crop, verbose=False)[0]
+            classification = self.classifier.predict(crop, imgsz=self.classifier_imgsz, verbose=False)[0]
             class_id = int(classification.probs.top1)
             raw_name = str(self.classifier.names[class_id]).lower().strip()
             canonical = CLASS_ALIASES.get(raw_name)
+            classifier_confidence = float(classification.probs.top1conf)
+            self.audit.append(dict(bbox=bbox, raw_class=raw_name,
+                                   detector_confidence=detector_confidence,
+                                   classifier_confidence=classifier_confidence,
+                                   decision="rejected_other" if raw_name == "other" else "accepted"))
             if canonical is None or raw_name == "other":
                 continue
             classifier_confidence = float(classification.probs.top1conf)
             combined_confidence = float(np.sqrt(detector_confidence * classifier_confidence))
             detections.append(
-                Detection(canonical, combined_confidence, (x1, y1, x2, y2), self.name)
+                Detection(canonical, combined_confidence, (x1, y1, x2, y2), self.name,
+                          detector_confidence, classifier_confidence, raw_name)
             )
         return detections
 
@@ -352,6 +392,7 @@ def build_detector(
     classifier_weights: str | Path | None = None,
     brightness_gain: float = 1.25,
     detector_imgsz: int = 1280,
+    classifier_imgsz: int | None = None,
 ) -> Detector:
     mode = mode.lower()
     if mode not in {"auto", "yolo", "two-stage", "color"}:
@@ -371,6 +412,7 @@ def build_detector(
                 confidence,
                 brightness_gain,
                 detector_imgsz,
+                classifier_imgsz,
             )
     if weights:
         weights = Path(weights)

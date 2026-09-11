@@ -46,6 +46,8 @@ def build_evidence_manifest(
         not_established.insert(0, "current-model performance")
     return {
         "schema": SCHEMA,
+        "taxonomy": summary.get("taxonomy", "unspecified"),
+        "detector": summary.get("detector", "unspecified"),
         "status": status,
         "headline": headline,
         "processing_mode": processing_mode,

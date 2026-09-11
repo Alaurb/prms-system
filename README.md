@@ -143,6 +143,8 @@ tests/                     Core processing and desktop-command tests
 
 ## Train the Green Gem model
 
+See [reviewer revision](docs/reviewer_revision.md) for the corrected label mapping, new split metadata requirements, stable 3D view, score auditing, and end-to-end evaluation command. Archived `demo/` results are kept unchanged for comparison with corrected inference.
+
 The repository includes a crop-generation tool and a thin Ultralytics training entry point; neither downloads third-party data or changes the archived evidence.
 
 ```powershell

@@ -23,6 +23,7 @@ def replay(source, output):
     with (source/"trajectory.csv").open(encoding="utf-8-sig",newline="") as f:
         pose_rows=list(csv.DictReader(f))
     config=json.loads((source/"run_config.json").read_text(encoding="utf-8"))
+    taxonomy=config.get("taxonomy", "legacy")
     poses=[Pose(r["frame"],*[float(r[k]) for k in ("x","y","z","yaw","map_px","map_py")],r["source"],r["route"]) for r in pose_rows]
     lookup={p.frame:p for p in poses}
     # This replay has no measured depth and must retain that limitation.
@@ -40,12 +41,12 @@ def replay(source, output):
     if source != output:
         shutil.copytree(source/"annotated",output/"annotated",dirs_exist_ok=True)
     map_image.save(output/"map_base.png")
-    draw_map_overlay(map_image,poses,detections,output/"map_overlay.png")
-    write_csv_files(output,poses,detections,config["row_offset_m"])
+    draw_map_overlay(map_image,poses,detections,output/"map_overlay.png",taxonomy)
+    write_csv_files(output,poses,detections,config["row_offset_m"],taxonomy)
     detector_name=rows[0]["detector"] if rows else "saved_predictions"
-    summary=write_summary(output,poses,detections,detector_name,"synthetic_map_path",len(poses))
+    summary=write_summary(output,poses,detections,detector_name,"synthetic_map_path",len(poses),taxonomy)
     summary.update(processing_mode="saved_prediction_replay",range_source="assumed_row_plane",nearest_row_filter="not_verified_no_depth",
-                   association_status="disabled_no_measured_geometry",candidate_tracks=len(tracks),rejected_observations=0)
+                   association_status="disabled_no_measured_geometry",candidate_tracks=0,unassociated_observations=len(tracks),rejected_observations=0)
     evidence=build_evidence_manifest(summary,poses,processing_mode=summary["processing_mode"],range_source=summary["range_source"])
     gallery=[]
     for pose in poses:

@@ -39,7 +39,17 @@ def main() -> None:
     parser.add_argument("--name", default="evaluation")
     parser.add_argument("--device", default="0")
     parser.add_argument("--plots", action="store_true")
+    parser.add_argument("--split", choices=("val", "test"), default="test")
+    parser.add_argument("--classifier-imgsz", type=int, default=224)
     args = parser.parse_args()
+
+    # Fail instead of allowing validators to fall back to a different split.
+    if not (Path(args.classifier_data) / args.split).is_dir():
+        raise FileNotFoundError(f"Classifier split does not exist: {args.split}")
+    import yaml
+    detector_config = yaml.safe_load(Path(args.detector_data).read_text(encoding="utf-8"))
+    if not detector_config.get(args.split):
+        raise ValueError(f"Detector YAML must explicitly declare {args.split}")
 
     output = Path(args.output).resolve()
     run_root = output.parent / "validation_runs"
@@ -47,7 +57,7 @@ def main() -> None:
 
     detector_result = YOLO(args.detector).val(
         data=str(Path(args.detector_data).resolve()),
-        split="val",
+        split=args.split,
         imgsz=1280,
         batch=4,
         device=args.device,
@@ -57,8 +67,8 @@ def main() -> None:
     )
     classifier_result = YOLO(args.classifier).val(
         data=str(Path(args.classifier_data).resolve()),
-        split="val",
-        imgsz=96,
+        split=args.split,
+        imgsz=args.classifier_imgsz,
         batch=32,
         device=args.device,
         plots=args.plots,
@@ -75,7 +85,8 @@ def main() -> None:
             "device": torch.cuda.get_device_name(0) if torch.cuda.is_available() else "cpu",
         },
         "models": {"detector": portable_path(args.detector), "classifier": portable_path(args.classifier)},
-        "settings": {"detector_imgsz": 1280, "classifier_imgsz": 96, "split": "val"},
+        "settings": {"detector_imgsz": 1280, "classifier_imgsz": args.classifier_imgsz, "split": args.split},
+        "scope": "component evaluation; not end-to-end pipeline performance",
         "detector": plain_metrics(detector_result),
         "classifier": plain_metrics(classifier_result),
     }

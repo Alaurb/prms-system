@@ -10,7 +10,7 @@ The project measures visual harvest maturity of the Green Gem cultivar. It is no
 | `mature_green` | Fruit is fully formed and green, but has no stable yellow halo; do not harvest. |
 | `harvest_ready` | Green fruit with a stable yellow/yellow-green halo that meets the grower's harvest rule. |
 | `overripe_or_defective` | Excessive yellowing or softening, cracking, disease signs, or another non-marketable condition. |
-| `other` | A non-fruit crop: leaf, stem, reflection, background, or an unusable occluded crop. This is a classifier negative class, not a reported maturity outcome. |
+| `other` | A verified non-fruit crop: leaf, stem, reflection or background. Occluded real fruit belongs in a review queue, not this negative class. |
 
 The yellow-halo rule is a visual proxy. Each training label must be verified against the field team's harvest decision. If available, retain fruit diameter, days after anthesis, firmness, and Brix as annotation metadata; do not use them as labels unless they were actually measured.
 
@@ -46,16 +46,19 @@ The classifier uses five directories because `other` is necessary to reject non-
 data/training/green_gem_classifier/
   train/{immature,mature_green,harvest_ready,overripe_or_defective,other}/
   val/{immature,mature_green,harvest_ready,overripe_or_defective,other}/
+  test/{immature,mature_green,harvest_ready,overripe_or_defective,other}/
 ```
 
 Use `scripts/prepare_green_gem_classifier.py` to make crops from verified boxes. Its input CSV has this header:
 
 ```csv
-image,x1,y1,x2,y2,label,split
-panorama_001_left.jpg,120,80,220,190,harvest_ready,train
+image,x1,y1,x2,y2,label,split,panorama_id,group_id,capture_date,route
+panorama_001_left.jpg,120,80,220,190,harvest_ready,train,pano001,plant001,2026-09-01,row01
 ```
 
 Then train:
+
+The preparation tool checks panorama/group/date/route and image hashes for cross-split leakage. Supply all three splits; it writes `split_manifest.json`. Read [reviewer_revision.md](reviewer_revision.md) for the full annotation and evaluation contract. Default crop padding is zero to match inference.
 
 ```powershell
 python scripts/train_green_gem.py --task classify --data data/training/green_gem_classifier --model yolo11s-cls.pt --imgsz 224 --epochs 120

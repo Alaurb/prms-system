@@ -46,6 +46,9 @@ class SpatialDetection:
     annotated_image: str
     position_source: str = "assumed_row_plane"
     track_id: str = ""
+    detector_confidence: float | None = None
+    classifier_confidence: float | None = None
+    raw_class: str = ""
 
     def to_dict(self) -> dict[str, object]:
         return asdict(self)
@@ -250,4 +253,7 @@ def project_detection(
         view_height=view_height,
         annotated_image=annotated_image,
         position_source="measured_radial_range" if range_m is not None else "assumed_row_plane",
+        detector_confidence=detection.detector_confidence,
+        classifier_confidence=detection.classifier_confidence,
+        raw_class=detection.raw_class,
     )

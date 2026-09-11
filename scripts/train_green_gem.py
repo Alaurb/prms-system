@@ -41,6 +41,9 @@ def main() -> None:
     except ImportError as exc:
         raise RuntimeError("Install optional-requirements.txt before training") from exc
     model = YOLO(args.model)
+    expected_task = "classify" if args.task == "classify" else "detect"
+    if model.task != expected_task:
+        raise ValueError(f"Requested {expected_task}, but checkpoint task is {model.task}")
     result = model.train(data=str(data), epochs=args.epochs, imgsz=args.imgsz, batch=args.batch, project=args.project, name=args.name)
     print(f"Training complete. Results: {result.save_dir}")
     print("Before deployment, validate on a route/date held out from all training images.")

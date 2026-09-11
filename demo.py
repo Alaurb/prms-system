@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import hashlib
+import importlib.metadata
 import re
 import sys
 import time
@@ -32,6 +34,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--confidence", type=float, default=0.25)
     parser.add_argument("--brightness-gain", type=float, default=1.25, help="Brightness gain for the enhanced detection branch; 1.0 disables enhancement")
     parser.add_argument("--detector-imgsz", type=int, default=1280, help="YOLO detector input size")
+    parser.add_argument("--classifier-imgsz", type=int, help="Classifier input size; defaults to checkpoint setting")
     parser.add_argument("--face-size", type=int, default=1440)
     parser.add_argument("--max-frames", type=int, default=24, help="Maximum frames to process; 0 processes every image")
     parser.add_argument("--map-width-m", type=float, default=35.0)
@@ -89,6 +92,7 @@ def run(args: argparse.Namespace) -> Path:
         classifier_weights=args.classifier_weights,
         brightness_gain=args.brightness_gain,
         detector_imgsz=args.detector_imgsz,
+        classifier_imgsz=args.classifier_imgsz,
     )
     if args.pose_csv:
         pose_lookup = load_pose_csv(args.pose_csv, map_image, args.map_width_m)
@@ -98,7 +102,8 @@ def run(args: argparse.Namespace) -> Path:
     detections = []
     used_poses = []
     gallery: list[dict[str, object]] = []
-    timings, rejected = [], []
+    timings, rejected, candidate_audit = [], [], []
+    taxonomy = getattr(detector, "taxonomy", "legacy")
     print(f"Found {len(all_images)} panoramas; processing {len(selected)} with detector: {detector.name}")
     for index, panorama_path in enumerate(selected, start=1):
         frame_start = time.perf_counter()
@@ -119,6 +124,8 @@ def run(args: argparse.Namespace) -> Path:
             annotated_name = f"{stem}_{side}_det.jpg"
             view.save(view_dir / view_name, quality=93, subsampling=0)
             side_detections = detector.detect(view)
+            candidate_audit.extend(dict(record, frame=panorama_path.name, side=side)
+                                   for record in getattr(detector, "audit", []))
             relative_annotated = (Path("annotated") / annotated_name).as_posix()
             ranges = range_evidence.load(panorama_path.name, side, view.size) if range_evidence else None
             accepted = 0
@@ -162,14 +169,15 @@ def run(args: argparse.Namespace) -> Path:
     tracks, links = associate(detections, used_poses, args.association_distance_m, args.association_gap)
     for name, payload in (("tracks.json", tracks), ("association_links.json", links), ("rejected_observations.json", rejected)):
         (output_dir / name).write_text(json.dumps(payload, indent=2), encoding="utf-8")
-    write_csv_files(output_dir, used_poses, detections, args.row_offset_m)
-    draw_map_overlay(map_image, used_poses, detections, output_dir / "map_overlay.png")
+    (output_dir / "candidate_audit.json").write_text(json.dumps(candidate_audit, indent=2), encoding="utf-8")
+    write_csv_files(output_dir, used_poses, detections, args.row_offset_m, taxonomy)
+    draw_map_overlay(map_image, used_poses, detections, output_dir / "map_overlay.png", taxonomy)
     map_image.save(output_dir / "map_base.png", quality=95)
-    summary = write_summary(output_dir, used_poses, detections, detector.name, pose_source, len(selected))
+    summary = write_summary(output_dir, used_poses, detections, detector.name, pose_source, len(selected), taxonomy)
     summary.update(processing_mode="offline_batch", range_source="registered_measured_range" if range_evidence else "assumed_row_plane",
                    nearest_row_filter="measured_range_band" if range_evidence else "not_verified_no_depth",
                    association_status="spatial_candidates" if range_evidence else "disabled_no_measured_geometry",
-                   candidate_tracks=len(tracks), rejected_observations=len(rejected))
+                   candidate_tracks=sum(t["status"] == "association_candidate" for t in tracks), rejected_observations=len(rejected))
     (output_dir / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8", newline="\n")
     evidence = build_evidence_manifest(
         summary, used_poses, processing_mode=summary["processing_mode"], range_source=summary["range_source"]
@@ -190,6 +198,12 @@ def run(args: argparse.Namespace) -> Path:
     )
 
     config = {
+        "taxonomy": taxonomy,
+        "classifier_imgsz": getattr(detector, "classifier_imgsz", None),
+        "model_sha256": {key: hashlib.sha256(Path(value).read_bytes()).hexdigest()
+                         for key, value in (("weights", args.weights), ("detector", args.detector_weights), ("classifier", args.classifier_weights)) if value},
+        "environment": {"python": sys.version, **{package: importlib.metadata.version(package)
+                        for package in ("numpy", "Pillow")}},
         "input": str(input_dir),
         "map": str(map_path),
         "pose_csv": str(Path(args.pose_csv).resolve()) if args.pose_csv else None,
@@ -212,6 +226,11 @@ def run(args: argparse.Namespace) -> Path:
         "association_distance_m": args.association_distance_m,
         "association_gap": args.association_gap,
     }
+    for package in ("ultralytics", "torch", "torchvision"):
+        try:
+            config["environment"][package] = importlib.metadata.version(package)
+        except importlib.metadata.PackageNotFoundError:
+            pass
     (output_dir / "run_config.json").write_text(json.dumps(config, ensure_ascii=False, indent=2), encoding="utf-8")
     elapsed = time.perf_counter()-started
     (output_dir / "runtime.json").write_text(json.dumps(dict(
@@ -220,7 +239,7 @@ def run(args: argparse.Namespace) -> Path:
     counts = Counter(item.class_name for item in detections)
     print(f"Completed: {output_dir / 'index.html'}")
     from ripeness_demo.detectors import class_order_for
-    print("Class counts: " + ", ".join(f"{name}={counts.get(name, 0)}" for name in class_order_for([item.class_name for item in detections])))
+    print("Class counts: " + ", ".join(f"{name}={counts.get(name, 0)}" for name in class_order_for([item.class_name for item in detections], taxonomy)))
     return output_dir / "index.html"
 
 

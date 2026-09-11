@@ -5,10 +5,10 @@
   "plant_columns": 26,
   "plants_with_detections": 20,
   "class_counts": {
-    "immature": 28,
-    "green_mature": 31,
+    "mature": 0,
     "discoloration": 9,
-    "mature": 0
+    "green_mature": 31,
+    "immature": 28
   },
   "detector": "yolo_two_stage_brightness_ensemble",
   "pose_source": "synthetic_map_path",

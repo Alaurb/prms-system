@@ -76,6 +76,7 @@ python demo.py `
 | `plants.csv` | Frame-side observation groups; these are not confirmed individual plants. |
 | `tracks.json` | Conservative cross-frame association candidates when measured geometry is present. |
 | `summary.json` and `run_config.json` | Counts, assumptions, model settings, and input provenance. |
+| `evidence.json` | Versioned claim boundary: whether the result is a legacy replay, an observation layout, or a measured-geometry candidate. |
 
 ## Supplied reproducibility example
 
@@ -85,6 +86,12 @@ The repository includes 13 source panoramas, weights, a reference map, saved pre
 python scripts/verify_dataset.py
 python scripts/replay_observations.py --source demo --output outputs/replay
 python -m unittest discover -s tests -v
+```
+
+When a deliberately regenerated archived demo artifact changes, refresh only the named records before committing, then rerun verification:
+
+```powershell
+python scripts/refresh_manifest.py --path demo/index.html --path demo/evidence.json
 ```
 
 The saved replay is expected to generate 68 legacy observations from 13 frames and 26 frame-side positions: 28 immature, 31 green mature, 9 discoloration, and 0 mature. Replay reuses archived detections; it does not run the models again.
@@ -115,6 +122,8 @@ To use range measurements, add both `--pose-csv` and `--range-manifest`. Range a
 - The supplied legacy weights do not establish Green Gem harvest readiness. A yellow halo is cultivar-specific and requires field-verified labels and held-out-route validation.
 
 These limits mirror the revised manuscript and prevent the sample visualization from being overstated as a validated fruit-level 3D reconstruction.
+
+Every run writes `evidence.json`; downstream tools should use this file rather than infer the strength of a claim from a visualization. The concise design rationale and comparison with related systems are in [docs/landscape_and_refactor.md](docs/landscape_and_refactor.md).
 
 ## Repository layout
 

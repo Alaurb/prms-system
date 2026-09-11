@@ -12,6 +12,7 @@ from PIL import Image
 from ripeness_demo.detectors import Detection
 from ripeness_demo.mapping import Pose, project_detection
 from ripeness_demo.evidence import associate
+from ripeness_demo.artifacts import build_evidence_manifest, write_evidence_manifest
 from ripeness_demo.report import write_csv_files, write_summary, write_html_report, draw_map_overlay
 
 
@@ -45,14 +46,16 @@ def replay(source, output):
     summary=write_summary(output,poses,detections,detector_name,"synthetic_map_path",len(poses))
     summary.update(processing_mode="saved_prediction_replay",range_source="assumed_row_plane",nearest_row_filter="not_verified_no_depth",
                    association_status="disabled_no_measured_geometry",candidate_tracks=len(tracks),rejected_observations=0)
+    evidence=build_evidence_manifest(summary,poses,processing_mode=summary["processing_mode"],range_source=summary["range_source"])
     gallery=[]
     for pose in poses:
         for side in ("left","right"):
             gallery.append(dict(frame=pose.frame,side=side,count=sum(d.frame==pose.frame and d.side==side for d in detections),path=f"annotated/{Path(pose.frame).stem}_{side}_det.jpg"))
-    write_html_report(output,summary,poses,detections,gallery,config["map_width_m"],config["map_width_m"]*map_image.height/map_image.width,map_image.size,config["row_offset_m"])
+    write_html_report(output,summary,poses,detections,gallery,config["map_width_m"],config["map_width_m"]*map_image.height/map_image.width,map_image.size,config["row_offset_m"],evidence=evidence)
     config["revision_processing"]="saved_prediction_replay; no new inference or measured depth"
     for name,data in (("summary.json",summary),("tracks.json",tracks),("association_links.json",links),("run_config.json",config),("rejected_observations.json",[])):
-        (output/name).write_text(json.dumps(data,indent=2),encoding="utf-8")
+        (output/name).write_text(json.dumps(data,indent=2),encoding="utf-8",newline="\n")
+    write_evidence_manifest(output,evidence)
     print(f"Replayed {len(detections)} observations from {len(poses)} frames")
 
 

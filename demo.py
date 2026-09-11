@@ -13,6 +13,7 @@ from PIL import Image
 
 from ripeness_demo.detectors import annotate, build_detector
 from ripeness_demo.evidence import RangeEvidence, foreground_range, associate
+from ripeness_demo.artifacts import build_evidence_manifest, write_evidence_manifest
 from ripeness_demo.mapping import generate_demo_poses, load_pose_csv, project_detection
 from ripeness_demo.panorama import extract_side_views, extract_all_faces, list_images
 from ripeness_demo.report import draw_map_overlay, write_csv_files, write_html_report, write_summary
@@ -169,7 +170,11 @@ def run(args: argparse.Namespace) -> Path:
                    nearest_row_filter="measured_range_band" if range_evidence else "not_verified_no_depth",
                    association_status="spatial_candidates" if range_evidence else "disabled_no_measured_geometry",
                    candidate_tracks=len(tracks), rejected_observations=len(rejected))
-    (output_dir / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    (output_dir / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8", newline="\n")
+    evidence = build_evidence_manifest(
+        summary, used_poses, processing_mode=summary["processing_mode"], range_source=summary["range_source"]
+    )
+    write_evidence_manifest(output_dir, evidence)
     map_height_m = args.map_width_m * map_image.height / map_image.width
     write_html_report(
         output_dir,
@@ -181,6 +186,7 @@ def run(args: argparse.Namespace) -> Path:
         map_height_m,
         map_image.size,
         args.row_offset_m,
+        evidence=evidence,
     )
 
     config = {

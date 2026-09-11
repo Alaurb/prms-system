@@ -76,8 +76,8 @@
   },
   {
     "path": "demo/association_links.json",
-    "bytes": 19199,
-    "sha256": "4a90892baa837f1965abd4cc6bad65a51f9323ba67cdff540d0bdade60016c98"
+    "bytes": 18450,
+    "sha256": "8c86cf8c36c595db2e46c66a901fc5078d908fea0c72564b3a02c3517d04f791"
   },
   {
     "path": "demo/detections.csv",
@@ -86,8 +86,8 @@
   },
   {
     "path": "demo/index.html",
-    "bytes": 82031,
-    "sha256": "bb87816db6cc99fc52c64bc6a8166326c965f4566f86a36f38bf0ce9ba655c9d"
+    "bytes": 79159,
+    "sha256": "2f919ba3b9777c0e419a14e5521c8400642dbdd162dc83cb676f156ac0873bec"
   },
   {
     "path": "demo/map_base.png",
@@ -96,8 +96,8 @@
   },
   {
     "path": "demo/map_overlay.png",
-    "bytes": 238143,
-    "sha256": "36d921bc71bbc3d701dc266f92c980fbd4c6072ab991c93c51b6d1980368a798"
+    "bytes": 236386,
+    "sha256": "5a4c2edeb84485cf802eed699e31a27a858cab36c1700c3e76e16719779819ac"
   },
   {
     "path": "demo/plants.csv",
@@ -111,18 +111,18 @@
   },
   {
     "path": "demo/run_config.json",
-    "bytes": 479,
-    "sha256": "cce45eae4ee9f5d8c5eb332dccdb25016b18e0f092a642bb4a9ff45264b0dac5"
+    "bytes": 465,
+    "sha256": "cb5d27b49a855d74b58edff361e65be0787f35695f0307791e866dabd44a8c87"
   },
   {
     "path": "demo/summary.json",
-    "bytes": 1132,
-    "sha256": "4bd4a8ca5c39e2327c98f39ab52f29cdee223b60553689c08330ae0ad2ceb025"
+    "bytes": 1104,
+    "sha256": "5c39c0adca67ce2a40cf6c855bd80e781f7906bb14d674120ed0b8fbf75ec2ac"
   },
   {
     "path": "demo/tracks.json",
-    "bytes": 24503,
-    "sha256": "42d5059b0fb2d9dbfa75b4e26dbbb817cccc5019e534d33c1837ba070b08b298"
+    "bytes": 23618,
+    "sha256": "ac82cebd9956da3aaaa96b9083058e7febf8e50b02113f130e74ada86cf497f5"
   },
   {
     "path": "demo/trajectory.csv",
@@ -288,5 +288,10 @@
     "path": "benchmarks/optimized_metrics.json",
     "bytes": 871,
     "sha256": "484693d08b4fb38c73c3b569317769464fc11d7e7fcfca61f8ef78a4791c04d4"
+  },
+  {
+    "path": "demo/evidence.json",
+    "bytes": 742,
+    "sha256": "e27957b3e5249f9ddb63277453ab94e9a8fbd8efcd6c2a190a42cc8f6135e003"
   }
 ]

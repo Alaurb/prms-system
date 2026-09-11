@@ -185,7 +185,7 @@ def write_summary(
         "plant_assignment": "frame_side_proxy",
         "limitations": limitations,
     }
-    (output_dir / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
+    (output_dir / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8", newline="\n")
     return summary
 
 
@@ -351,11 +351,12 @@ HTML_TEMPLATE = r'''<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PRMS | 3D Tomato Bunch View</title>
 <style>
 :root{--ink:#173d30;--muted:#61756b;--line:#d7e3db}*{box-sizing:border-box}body{margin:0;background:linear-gradient(145deg,#e8f2e9,#faf8ef);color:var(--ink);font:14px Inter,system-ui,sans-serif}header,main{max-width:1320px;margin:auto}header{padding:14px 20px 8px}h1{font-size:clamp(22px,3vw,32px);letter-spacing:-.04em;margin:0}h2{font-size:15px;margin:0 0 7px}header p,.note,.subtle{color:var(--muted);line-height:1.4}.wrap{padding:0 20px 18px}.panel,.card{background:#ffffffed;border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 22px #31503d12}.panel{padding:12px}.controls,.legend,.count-line{display:flex;gap:8px;flex-wrap:wrap}.controls{align-items:center;margin:5px 0 7px}.legend span,.count-line span{display:inline-flex;align-items:center;gap:4px;color:var(--muted);font-size:11px}.dot{width:9px;height:9px;border-radius:50%;border:1px solid #173d3055;display:inline-block}.scene{height:min(610px,calc(100vh - 170px));min-height:410px;width:100%;display:block;border-radius:11px;border:1px solid var(--line);background:linear-gradient(#f6faf6,#edf3ed);cursor:grab}.scene:active{cursor:grabbing}.warning{margin-top:7px;color:var(--muted);font-size:11px;line-height:1.3}.detail-grid{display:grid;grid-template-columns:1fr;gap:10px;margin:0}.photo-placeholder,.photo-detail{min-height:150px;border:1px dashed var(--line);border-radius:10px;background:#f4f7f4}.photo-placeholder{display:grid;place-items:center;padding:14px;text-align:center;color:var(--muted);font-size:12px}.photo-detail[hidden]{display:none}.photo-detail{margin:0;overflow:hidden;border-style:solid}.photo-detail img{width:100%;height:150px;object-fit:cover;display:block}.photo-detail figcaption{padding:7px 9px;color:var(--muted);font-size:11px;line-height:1.35}.mini-map{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:10px;background:#eff4ef}.mini-map img{display:block;width:100%;max-height:130px;object-fit:cover;opacity:.55}.mini-point{position:absolute;width:7px;height:7px;border-radius:50%;background:#2f6f4f;border:1px solid #fff;transform:translate(-50%,-50%);cursor:pointer}.mini-point.selected{outline:2px solid #122a20;outline-offset:2px}.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:8px}.card{padding:7px 8px;min-width:0}.card b{font-size:18px;display:block}.card span{color:var(--muted);font-size:10px}@media(min-width:851px){.wrap{height:calc(100vh - 70px);display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:12px;overflow:hidden}.main-panel{grid-column:1;min-height:0}.detail-grid{grid-column:2;min-height:0;align-content:start}.detail-grid>.panel{padding:10px}.detail-grid .note{display:none}}@media(max-width:850px){.wrap{padding:0 14px 28px}.scene{height:460px}header{padding:14px 14px 8px}}
-</style></head><body><header><h1>PRMS | Green Gem 3D Bunches</h1><p>Drag to rotate | scroll to zoom | select a fruit or vine</p></header><main class="wrap">
+</style></head><body><header><h1>PRMS | Green Gem 3D Bunches</h1><p id="evidence-banner">Drag to rotate | scroll to zoom | select a fruit or vine</p></header><main class="wrap">
 <section class="panel main-panel"><h2>3D tomato-bunch view</h2><div class="controls" id="filters"></div><canvas class="scene" id="scene" role="img" aria-label="Three-dimensional tomato observation bunches connected by visual vines"></canvas><div class="legend" id="legend"></div><div class="warning">Note: dashed vines are visual frame-side grouping guides, not reconstructed plants.</div></section>
 <section class="detail-grid"><article class="panel"><h2>Selected source view</h2><div class="photo-placeholder" id="placeholder">Select a fruit or vine to review the source image.</div><figure class="photo-detail" id="detail" hidden><img id="photo" alt="Annotated tomato panorama view"><figcaption><strong id="where"></strong><div id="meta"></div><div class="count-line" id="counts"></div></figcaption></figure></article><article class="panel"><h2>Row location</h2><div class="mini-map" id="mini-map"><img src="map_base.png" alt="Farm map"></div><section class="cards" id="cards"></section></article></section></main>
 <script>
-const DATA=__DATA__, colors=DATA.colors, plants=DATA.plants, summary=DATA.summary;
+const DATA=__DATA__, colors=DATA.colors, plants=DATA.plants, summary=DATA.summary, evidence=DATA.evidence||{};
+document.querySelector('#evidence-banner').textContent=(evidence.headline||'Observation display')+' Drag to rotate | scroll to zoom.';
 const labels={processed_frames:'Processed frames',plant_columns:'Observation positions',detections:'Detected fruit',immature:'Immature',mature_green:'Mature green',harvest_ready:'Harvest ready',overripe_or_defective:'Overripe / defective',green_mature:'Green mature (legacy)',discoloration:'Discoloration (legacy)',mature:'Mature (legacy)'};
 const enabled=Object.fromEntries(Object.keys(colors).map(key=>[key,true]));document.querySelector('#filters').innerHTML=Object.entries(colors).map(([key,color])=>`<label><input type="checkbox" data-k="${key}" checked><i class="dot" style="background:${color}"></i>${labels[key]}</label>`).join('');document.querySelectorAll('#filters input').forEach(node=>node.addEventListener('change',()=>{enabled[node.dataset.k]=node.checked;draw()}));
 document.querySelector('#legend').innerHTML=Object.entries(colors).map(([key,color])=>`<span><i class="dot" style="background:${color}"></i>${labels[key]}</span>`).join('')+`<span><i class="dot" style="background:#2f6f4f"></i>Visual vine</span><span><i class="dot" style="background:#9ca3af"></i>Relative layout</span>`;
@@ -382,6 +383,7 @@ def write_html_report(
     map_height_m: float,
     map_size: tuple[int, int],
     row_offset_m: float = 1.15,
+    evidence: dict[str, object] | None = None,
 ) -> None:
     data = {
         "summary": summary,
@@ -392,6 +394,7 @@ def write_html_report(
         "gallery": gallery,
         "extent": {"x": map_width_m, "y": map_height_m},
         "map_size": {"width": map_size[0], "height": map_size[1]},
+        "evidence": evidence or {},
     }
     payload = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
-    (output_dir / "index.html").write_text(HTML_TEMPLATE.replace("__DATA__", payload), encoding="utf-8")
+    (output_dir / "index.html").write_text(HTML_TEMPLATE.replace("__DATA__", payload), encoding="utf-8", newline="\n")

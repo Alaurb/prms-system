@@ -1,0 +1,25 @@
+{
+  "schema": "prms.evidence.v1",
+  "status": "archived_legacy_replay",
+  "headline": "Archived observations replayed; no model inference was performed.",
+  "processing_mode": "saved_prediction_replay",
+  "pose_sources": [
+    "synthetic_map_path"
+  ],
+  "range_source": "assumed_row_plane",
+  "established": [
+    "frame-side image observations",
+    "model-predicted class and confidence",
+    "source-image traceability"
+  ],
+  "not_established": [
+    "current-model performance",
+    "field-verified Green Gem harvest-readiness accuracy",
+    "unique-fruit count or biological truss identity",
+    "validated metric fruit location without independent geometry evaluation"
+  ],
+  "counts": {
+    "frames": 13,
+    "observations": 68
+  }
+}

@@ -26,14 +26,14 @@ def args() -> argparse.Namespace:
     p.add_argument("--max-images", type=int, default=60)
     p.add_argument("--box-threshold", type=float, default=0.15)
     p.add_argument("--text-threshold", type=float, default=0.20)
-    p.add_argument("--gamma", type=float, default=0.72)
+    p.add_argument("--gamma", type=float, default=0.90)
     p.add_argument("--device", default="cuda")
     return p.parse_args()
 
 
 def brighten(image: np.ndarray, gamma: float) -> np.ndarray:
     lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
-    lab[:, :, 0] = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8)).apply(lab[:, :, 0])
+    lab[:, :, 0] = cv2.createCLAHE(clipLimit=1.0, tileGridSize=(8, 8)).apply(lab[:, :, 0])
     enhanced = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
     table = np.array([((value / 255.0) ** gamma) * 255 for value in range(256)], dtype=np.uint8)
     return cv2.LUT(enhanced, table)

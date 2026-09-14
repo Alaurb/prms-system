@@ -1,0 +1,21 @@
+# Track only code, small configuration, documentation and metadata.
+*
+!.gitignore
+!.gitattributes
+!README.md
+!WORKSPACE.md
+!果园检测操作手册.md
+!configs/
+!configs/**
+!metadata/
+!metadata/**
+!scripts/
+!scripts/**
+!src/
+!src/**
+
+# Never track generated notebook/cache files or local model artifacts.
+scripts/.ipynb_checkpoints/
+scripts/__pycache__/
+scripts/*.pt
+*.pyc

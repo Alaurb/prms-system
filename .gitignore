@@ -16,3 +16,8 @@ tmp/
 third_party/
 .venv/
 data/training/
+.env
+.env.*
+models/sam2/
+models/groundingdino/
+*.onnx

@@ -25,6 +25,10 @@ The target Green Gem workflow uses two YOLO models: a tomato detector proposes f
 
 The included classifier weights and archived `demo/` output predate this Green Gem taxonomy. They are retained solely as a runnable legacy reproducibility example and must not be reported as Green Gem harvest-maturity results. Train and validate replacement weights before using the desktop window for the Green Gem study; the complete protocol is in [docs/green_gem_training.md](docs/green_gem_training.md).
 
+## Semi-automatic instance preparation
+
+For reviewing an external image collection, [SAM 2 box-to-mask preparation](docs/sam2_remote_setup.md) converts existing tomato boxes into mask and crop candidates. [Grounding DINO → SAM 2](docs/groundingdino_sam2_remote_pipeline.md) can additionally propose tomato boxes from the text prompt `tomato.` before creating those candidates. Both workflows are deliberately review-only: candidate records have no maturity label and cannot be used as performance evidence until an annotator verifies them.
+
 ## Fastest path: desktop operation window
 
 The completed reviewer fixes, current result locations, and exact rerun commands are recorded in [completion_20260914.md](docs/completion_20260914.md). The corrected local run retains 85 legacy observations; the original archived example retains 68. These are different runs, not accuracy measurements.

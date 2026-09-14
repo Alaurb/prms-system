@@ -60,6 +60,8 @@ Then train:
 
 The preparation tool checks panorama/group/date/route and image hashes for cross-split leakage. Supply all three splits; it writes `split_manifest.json`. Read [reviewer_revision.md](reviewer_revision.md) for the full annotation and evaluation contract. Default crop padding is zero to match inference.
 
+Current preparation validates all rows before creating files and records crop hashes in a versioned manifest. The training command requires this manifest and checks the actual crop files against it. Rebuild a new dataset directory when changing labels or crops. Ungradable or unresolved fruit must be adjudicated before entering training; it is not an `other` example.
+
 ```powershell
 python scripts/train_green_gem.py --task classify --data data/training/green_gem_classifier --model yolo11s-cls.pt --imgsz 224 --epochs 120
 ```

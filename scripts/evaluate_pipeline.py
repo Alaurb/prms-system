@@ -8,6 +8,7 @@ the pipeline detections.csv. Metrics apply only to listed views.
 import argparse
 import csv
 import json
+import hashlib
 import math
 import sys
 from collections import Counter
@@ -42,7 +43,9 @@ def evaluate(predictions, truth, taxonomy, iou=0.5):
         by_view[key].append((box, row["class_name"]))
     tp, fp, fn, confusion = Counter(), Counter(), Counter(), Counter()
     matched = missed = extra = wrong = 0
+    per_view = []
     for key, objects in views.items():
+        before = (matched, missed, extra, wrong)
         for obj in objects:
             validate(obj["bbox"], obj["class_name"])
         pred = by_view[key]
@@ -68,11 +71,18 @@ def evaluate(predictions, truth, taxonomy, iou=0.5):
         for gi, obj in enumerate(objects):
             if gi not in used_g:
                 fn[obj["class_name"]] += 1; missed += 1
+        per_view.append(dict(frame=key[0], side=key[1], truth_objects=len(objects), predictions=len(pred),
+                             **dict(zip(("matched", "missed", "extra", "wrong_class"),
+                                        (a-b for a,b in zip((matched,missed,extra,wrong),before))))))
     def ratio(a, b):
         return a / b if b else None
     return dict(scope="exhaustively_annotated_views_only", taxonomy=taxonomy,
                 matching="class-agnostic descending-IoU greedy one-to-one; not COCO AP", iou=iou,
                 views=len(views), matched=matched, missed=missed, extra=extra, wrong_class=wrong,
+                total_prediction_records=len(predictions),
+                evaluated_prediction_records=sum(len(p) for p in by_view.values()),
+                excluded_prediction_records=sum((r["frame"],r["side"]) not in views for r in predictions),
+                per_view=per_view,
                 detection_precision=ratio(matched, matched+extra), detection_recall=ratio(matched, matched+missed),
                 per_class={c: dict(tp=tp[c], fp=fp[c], fn=fn[c], precision=ratio(tp[c],tp[c]+fp[c]),
                                    recall=ratio(tp[c],tp[c]+fn[c]), f1=ratio(2*tp[c],2*tp[c]+fp[c]+fn[c])) for c in classes},
@@ -90,5 +100,8 @@ if __name__ == "__main__":
     with Path(args.predictions).open(encoding="utf-8-sig", newline="") as handle:
         predictions = list(csv.DictReader(handle))
     report = evaluate(predictions, json.loads(Path(args.truth).read_text(encoding="utf-8")), args.taxonomy, args.iou)
+    report["input_sha256"] = {name: hashlib.sha256(Path(path).read_bytes()).hexdigest()
+                              for name, path in (("predictions", args.predictions), ("truth", args.truth))}
+    Path(args.output).parent.mkdir(parents=True, exist_ok=True)
     Path(args.output).write_text(json.dumps(report, indent=2), encoding="utf-8")
     print(json.dumps(report, indent=2))

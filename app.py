@@ -29,6 +29,7 @@ def build_command(
     pose_csv: str = "",
     range_manifest: str = "",
     export_six_faces: bool = True,
+    classifier_imgsz: str = "",
 ) -> list[str]:
     """Create a transparent command line for a GUI processing run."""
     command = [
@@ -57,6 +58,8 @@ def build_command(
         command.extend(["--range-manifest", range_manifest])
     if export_six_faces:
         command.append("--export-six-faces")
+    if classifier_imgsz:
+        command.extend(["--classifier-imgsz", classifier_imgsz])
     return command
 
 
@@ -68,6 +71,8 @@ class PrmsApp:
         self.messages: queue.Queue[str] = queue.Queue()
         self.process: subprocess.Popen[str] | None = None
         self.last_result: Path | None = None
+        self.busy = False
+        self.pending_result: Path | None = None
 
         self.input_dir = StringVar(value=str(ROOT / "data" / "panoramas"))
         self.map_path = StringVar(value=str(ROOT / "assets" / "farm_map.jpg"))
@@ -78,6 +83,7 @@ class PrmsApp:
         self.classifier_weights = StringVar(value=str(ROOT / "models" / "tomato_ripeness_classifier.pt"))
         self.confidence = StringVar(value="0.25")
         self.max_frames = StringVar(value="0")
+        self.classifier_imgsz = StringVar(value="")
         self.export_six_faces = BooleanVar(value=True)
         self.status = StringVar(value="Ready. The bundled classifier is legacy; select validated Green Gem weights for field use.")
 
@@ -101,6 +107,8 @@ class PrmsApp:
         ttk.Label(options, text="Frames (0 = all)").grid(row=0, column=2, sticky="w")
         ttk.Entry(options, textvariable=self.max_frames, width=8).grid(row=0, column=3, padx=(6, 18))
         ttk.Checkbutton(options, text="Export all six cube faces", variable=self.export_six_faces).grid(row=0, column=4, sticky="w")
+        ttk.Label(options, text="Classifier size (blank = model)").grid(row=1, column=0, columnspan=2, sticky="w")
+        ttk.Entry(options, textvariable=self.classifier_imgsz, width=8).grid(row=1, column=2, sticky="w")
 
         actions = ttk.Frame(frame)
         actions.grid(row=8, column=0, columnspan=3, sticky="ew")
@@ -146,11 +154,12 @@ class PrmsApp:
         try:
             confidence = float(self.confidence.get())
             frames = int(self.max_frames.get())
+            classifier_size = int(self.classifier_imgsz.get()) if self.classifier_imgsz.get().strip() else 224
         except ValueError:
-            messagebox.showerror("Invalid options", "Confidence must be a number and frames must be an integer.")
+            messagebox.showerror("Invalid options", "Confidence must be a number; frames and classifier size must be integers.")
             return False
-        if not 0.0 <= confidence <= 1.0 or frames < 0:
-            messagebox.showerror("Invalid options", "Confidence must be between 0 and 1; frames must be zero or positive.")
+        if not 0.0 <= confidence <= 1.0 or frames < 0 or classifier_size < 32:
+            messagebox.showerror("Invalid options", "Confidence must be between 0 and 1; frames must be nonnegative; classifier size must be at least 32.")
             return False
         return True
 
@@ -165,27 +174,36 @@ class PrmsApp:
         return True
 
     def run_inference(self) -> None:
+        if self.busy:
+            return
         if not self._validate_number() or not self._ensure_paths((self.input_dir, self.map_path, self.detector_weights, self.classifier_weights)):
             return
         command = build_command(
             sys.executable, self.input_dir.get(), self.map_path.get(), self.output_dir.get(),
             self.detector_weights.get(), self.classifier_weights.get(), self.confidence.get(), self.max_frames.get(),
             self.pose_csv.get(), self.range_manifest.get(), self.export_six_faces.get(),
+            self.classifier_imgsz.get().strip(),
         )
-        self.last_result = Path(self.output_dir.get()) / "index.html"
+        self.pending_result = Path(self.output_dir.get()) / "index.html"
         self._start(command, "Running two-stage detection and spatial mapping…")
 
     def replay(self) -> None:
+        if self.busy:
+            return
         output = ROOT / "outputs" / "desktop_replay"
-        self.last_result = output / "index.html"
+        self.pending_result = output / "index.html"
         self._start([sys.executable, str(ROOT / "scripts" / "replay_observations.py"), "--source", str(ROOT / "demo"), "--output", str(output)], "Replaying the included saved observations…")
 
     def verify(self) -> None:
+        if self.busy:
+            return
+        self.pending_result = None
         self._start([sys.executable, str(ROOT / "scripts" / "verify_dataset.py")], "Checking included file hashes…")
 
     def _start(self, command: list[str], status: str) -> None:
-        if self.process is not None:
+        if self.busy:
             return
+        self.busy = True
         self.status.set(status)
         self.run_button.configure(state="disabled")
         self._append("\n$ " + subprocess.list2cmdline(command) + "\n")
@@ -209,12 +227,16 @@ class PrmsApp:
                 if isinstance(item, tuple):
                     kind, payload = item
                     self.process = None
+                    self.busy = False
                     self.run_button.configure(state="normal")
                     if kind == "__DONE__":
+                        if payload == 0 and self.pending_result and self.pending_result.is_file():
+                            self.last_result = self.pending_result
                         self.status.set("Completed successfully." if payload == 0 else f"Stopped with exit code {payload}.")
                     else:
                         self.status.set("Could not start the command.")
                         self._append(f"ERROR: {payload}\n")
+                    self.pending_result = None
                 else:
                     self._append(item)
         except queue.Empty:
@@ -222,7 +244,8 @@ class PrmsApp:
         self.root.after(100, self._drain_messages)
 
     def open_result(self) -> None:
-        candidates = [self.last_result, ROOT / "outputs" / "desktop_replay" / "index.html", ROOT / "demo" / "index.html"]
+        candidates = [self.last_result, ROOT / "outputs" / "reviewer_fixed_final" / "index.html",
+                      ROOT / "outputs" / "desktop_replay" / "index.html", ROOT / "demo" / "index.html"]
         for candidate in candidates:
             if candidate and candidate.exists():
                 webbrowser.open(candidate.resolve().as_uri())

@@ -27,6 +27,8 @@ The included classifier weights and archived `demo/` output predate this Green G
 
 ## Fastest path: desktop operation window
 
+The completed reviewer fixes, current result locations, and exact rerun commands are recorded in [completion_20260914.md](docs/completion_20260914.md). The corrected local run retains 85 legacy observations; the original archived example retains 68. These are different runs, not accuracy measurements.
+
 The project includes a small Tkinter desktop window so it can be operated without constructing command lines.
 
 ```powershell

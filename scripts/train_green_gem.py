@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 from pathlib import Path
 
 
@@ -22,9 +24,36 @@ def parse_args() -> argparse.Namespace:
 
 
 def _check_classifier_layout(root: Path) -> None:
-    missing = [str(root / split / label) for split in ("train", "val") for label in GREEN_GEM_CLASSES if not (root / split / label).is_dir()]
+    root = root.resolve()
+    missing = [str(root / split / label) for split in ("train", "val", "test") for label in GREEN_GEM_CLASSES if not (root / split / label).is_dir()]
     if missing:
         raise ValueError("Classifier dataset must contain all Green Gem class folders; missing: " + ", ".join(missing))
+    manifest_path = root / "split_manifest.json"
+    if not manifest_path.is_file():
+        raise ValueError("Prepare data with prepare_green_gem_classifier.py to create a split manifest")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if manifest.get("schema") != "prms.classifier_dataset.v1" or not manifest.get("crops"):
+        raise ValueError("Unsupported or empty classifier split manifest")
+    expected = set()
+    for record in manifest["crops"]:
+        path = (root / record["path"]).resolve()
+        if not path.is_relative_to(root) or path in expected or not path.is_file():
+            raise ValueError("Invalid or duplicate crop in split manifest")
+        if hashlib.sha256(path.read_bytes()).hexdigest() != record["sha256"]:
+            raise ValueError(f"Crop changed after preparation: {record['path']}")
+        expected.add(path)
+    actual = set()
+    for split in ("train", "val", "test"):
+        folders = {p.name for p in (root / split).iterdir() if p.is_dir()}
+        if folders != set(GREEN_GEM_CLASSES):
+            raise ValueError(f"Unexpected class folders in {split}")
+        for label in GREEN_GEM_CLASSES:
+            files = {p.resolve() for p in (root / split / label).rglob("*") if p.is_file()}
+            if split in ("train", "val") and not files:
+                raise ValueError(f"Empty class: {split}/{label}")
+            actual.update(files)
+    if actual != expected:
+        raise ValueError("Dataset files differ from the recorded split manifest")
 
 
 def main() -> None:

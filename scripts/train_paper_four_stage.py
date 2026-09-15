@@ -26,7 +26,9 @@ CLASSES = ("immature-period", "green-maturity-period", "discoloration-period", "
 
 def source_group(path: Path) -> str:
     """Derive a stable source-image group from a SAM2 crop filename."""
-    name = re.sub(r"^batch\d+__", "", path.stem)
+    # Labels are allowed to rename the review symlink.  The crop target retains
+    # the original acquisition name, so grouping must use the resolved target.
+    name = re.sub(r"^batch\d+__", "", path.resolve().stem)
     return re.sub(r"_tomato_\d+$", "", name)
 
 

@@ -119,6 +119,30 @@ def main() -> None:
     if table.exists():
         with table.open(newline="", encoding="utf-8") as handle:
             previous = [old for old in csv.DictReader(handle) if old["experiment_id"] != args.experiment_id]
+    accepted = [old for old in previous if old["status"] in {"accepted_baseline", "accepted"}]
+    if args.status == "accepted_baseline" and accepted:
+        parser.error("an accepted baseline already exists; register later improvements as accepted or rejected")
+    if args.status == "accepted":
+        if not accepted:
+            parser.error("an accepted experiment requires an existing accepted baseline")
+        reference = accepted[-1]
+        candidate = {
+            "precision": float(best["metrics/precision(B)"]),
+            "recall": float(best["metrics/recall(B)"]),
+            "map50": float(best["metrics/mAP50(B)"]),
+            "map50_95": float(best["metrics/mAP50-95(B)"]),
+        }
+        reference_metrics = {name: float(reference[name]) for name in candidate}
+        if not (
+            candidate["map50_95"] > reference_metrics["map50_95"]
+            and candidate["precision"] >= reference_metrics["precision"]
+            and candidate["recall"] >= reference_metrics["recall"]
+            and candidate["map50"] >= reference_metrics["map50"]
+        ):
+            parser.error(
+                "candidate fails acceptance rule against " + reference["experiment_id"]
+                + ": mAP50-95 must improve, while precision, recall and mAP50 cannot decrease"
+            )
     previous.append(row)
     with table.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=TABLE_COLUMNS)

@@ -29,7 +29,7 @@ def source_group(path: Path) -> str:
     # Labels are allowed to rename the review symlink.  The crop target retains
     # the original acquisition name, so grouping must use the resolved target.
     name = re.sub(r"^batch\d+__", "", path.resolve().stem)
-    return re.sub(r"_tomato_\d+$", "", name)
+    return re.sub(r"(?:_tomato_|__)\d+$", "", name)
 
 
 def collect(root: Path):

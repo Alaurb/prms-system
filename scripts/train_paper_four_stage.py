@@ -39,12 +39,23 @@ def load_provenance(path: Path) -> dict[str, str]:
         reader = csv.DictReader(handle)
         if not reader.fieldnames or not {"output", "source_image"}.issubset(reader.fieldnames):
             raise ValueError("Provenance CSV needs output and source_image columns")
-        mapping = {}
+        mapping, filename_mapping, duplicate_names = {}, {}, set()
         for row in reader:
             key = Path(row["output"]).as_posix()
             if key in mapping:
                 raise ValueError(f"Duplicate generated crop in provenance: {key}")
             mapping[key] = row["source_image"]
+            name = Path(row["output"]).name
+            if name in filename_mapping:
+                duplicate_names.add(name)
+            else:
+                filename_mapping[name] = row["source_image"]
+    # A reviewer may move an image between maturity folders.  The generated
+    # filename remains stable, so retain an unambiguous filename fallback while
+    # refusing ambiguous names.
+    for name in duplicate_names:
+        filename_mapping.pop(name, None)
+    mapping.update({f"__filename__/{name}": source for name, source in filename_mapping.items()})
     return mapping
 
 
@@ -63,7 +74,7 @@ def collect(root: Path, provenance: dict[str, str] | None = None):
             except Exception as exc:
                 raise ValueError(f"Unreadable reviewed crop: {path}") from exc
             relative = path.relative_to(root).as_posix()
-            group = provenance.get(relative) if provenance is not None else source_group(path)
+            group = (provenance.get(relative) or provenance.get(f"__filename__/{path.name}")) if provenance is not None else source_group(path)
             if not group:
                 raise ValueError(f"Missing source provenance for {relative}")
             records.append((path, label_id, group))

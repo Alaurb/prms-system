@@ -150,11 +150,16 @@ def main():
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--image-size", type=int, default=224)
     parser.add_argument("--seed", type=int, default=20260914)
+    parser.add_argument("--pretrained", action="store_true", help="Initialize ResNet-18 from ImageNet weights")
+    parser.add_argument("--freeze-epochs", type=int, default=3,
+                        help="When pretrained, train only the classification head for this many initial epochs")
     parser.add_argument("--provenance-manifest", type=Path,
                         help="CSV from prepare_original_box_crops.py; preserves source-image grouping")
     parser.add_argument("--supplementary-root", type=Path,
                         help="Optional legacy four-class root; added to training only, never validation/test")
     args = parser.parse_args()
+    if args.freeze_epochs < 0:
+        raise ValueError("--freeze-epochs must be non-negative")
     if args.output.exists():
         raise FileExistsError(f"Output must be new: {args.output}")
     torch.manual_seed(args.seed); random.seed(args.seed)
@@ -176,14 +181,23 @@ def main():
                                 shuffle=name == "train", num_workers=4, pin_memory=True)
                for name, rows in splits.items()}
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = models.resnet18(weights=None)
+    weights = models.ResNet18_Weights.DEFAULT if args.pretrained else None
+    model = models.resnet18(weights=weights)
     model.fc = nn.Linear(model.fc.in_features, len(CLASSES)); model.to(device)
+    if args.pretrained and args.freeze_epochs:
+        for parameter in model.parameters():
+            parameter.requires_grad = False
+        for parameter in model.fc.parameters():
+            parameter.requires_grad = True
     train_counts = Counter(label for _, label, _ in splits["train"])
     class_count = torch.tensor([train_counts[i] for i in range(len(CLASSES))], dtype=torch.float)
     criterion = nn.CrossEntropyLoss(weight=(class_count.sum() / (len(CLASSES) * class_count)).to(device))
     optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4, weight_decay=1e-4)
     best, history = -1.0, []
     for epoch in range(1, args.epochs + 1):
+        if args.pretrained and epoch == args.freeze_epochs + 1:
+            for parameter in model.parameters():
+                parameter.requires_grad = True
         model.train(); loss_sum = n = 0
         for images, labels in loaders["train"]:
             optimizer.zero_grad(); logits = model(images.to(device)); loss = criterion(logits, labels.to(device)); loss.backward(); optimizer.step()
@@ -196,6 +210,7 @@ def main():
     checkpoint = torch.load(args.output / "best.pt", map_location=device, weights_only=False)
     model.load_state_dict(checkpoint["state_dict"])
     report = {"schema": "prms.paper_four_stage_baseline.v1", "classes": CLASSES, "seed": args.seed,
+              "pretrained": args.pretrained, "freeze_epochs": args.freeze_epochs,
               "device": str(device), "counts": {key: dict(value) for key, value in counts.items()},
               "supplementary_train_counts": dict(supplementary_counts),
               "train_counts_including_supplementary": dict(train_counts),

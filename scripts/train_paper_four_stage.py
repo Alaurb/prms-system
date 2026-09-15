@@ -8,6 +8,7 @@ so separate tomatoes from one panorama cannot leak across data splits.
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import random
 import re
@@ -32,7 +33,22 @@ def source_group(path: Path) -> str:
     return re.sub(r"(?:_tomato_|__)\d+$", "", name)
 
 
-def collect(root: Path):
+def load_provenance(path: Path) -> dict[str, str]:
+    """Map a generated crop's relative path to its original source image."""
+    with path.open(encoding="utf-8-sig", newline="") as handle:
+        reader = csv.DictReader(handle)
+        if not reader.fieldnames or not {"output", "source_image"}.issubset(reader.fieldnames):
+            raise ValueError("Provenance CSV needs output and source_image columns")
+        mapping = {}
+        for row in reader:
+            key = Path(row["output"]).as_posix()
+            if key in mapping:
+                raise ValueError(f"Duplicate generated crop in provenance: {key}")
+            mapping[key] = row["source_image"]
+    return mapping
+
+
+def collect(root: Path, provenance: dict[str, str] | None = None):
     records = []
     for label_id, label in enumerate(CLASSES):
         folder = root / label
@@ -46,7 +62,11 @@ def collect(root: Path):
                     image.verify()
             except Exception as exc:
                 raise ValueError(f"Unreadable reviewed crop: {path}") from exc
-            records.append((path, label_id, source_group(path)))
+            relative = path.relative_to(root).as_posix()
+            group = provenance.get(relative) if provenance is not None else source_group(path)
+            if not group:
+                raise ValueError(f"Missing source provenance for {relative}")
+            records.append((path, label_id, group))
     if not records:
         raise ValueError("No reviewed crops found")
     return records
@@ -119,12 +139,24 @@ def main():
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--image-size", type=int, default=224)
     parser.add_argument("--seed", type=int, default=20260914)
+    parser.add_argument("--provenance-manifest", type=Path,
+                        help="CSV from prepare_original_box_crops.py; preserves source-image grouping")
+    parser.add_argument("--supplementary-root", type=Path,
+                        help="Optional legacy four-class root; added to training only, never validation/test")
     args = parser.parse_args()
     if args.output.exists():
         raise FileExistsError(f"Output must be new: {args.output}")
     torch.manual_seed(args.seed); random.seed(args.seed)
-    records = collect(args.review_root.resolve())
+    provenance = load_provenance(args.provenance_manifest.resolve()) if args.provenance_manifest else None
+    records = collect(args.review_root.resolve(), provenance)
     splits, counts = grouped_split(records, args.seed)
+    supplementary_counts = Counter()
+    if args.supplementary_root:
+        supplementary = collect(args.supplementary_root.resolve())
+        # This corpus is intentionally training-only. Prefix its groups so its
+        # filenames cannot collide with source identifiers in the main corpus.
+        splits["train"].extend((path, label, f"supplementary::{group}") for path, label, group in supplementary)
+        supplementary_counts = Counter(label for _, label, _ in supplementary)
     args.output.mkdir(parents=True)
     normalise = transforms.Normalize((.485, .456, .406), (.229, .224, .225))
     train_tf = transforms.Compose([transforms.Resize((args.image_size, args.image_size)), transforms.RandomHorizontalFlip(), transforms.ColorJitter(.12, .12, .08), transforms.ToTensor(), normalise])
@@ -135,7 +167,8 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = models.resnet18(weights=None)
     model.fc = nn.Linear(model.fc.in_features, len(CLASSES)); model.to(device)
-    class_count = torch.tensor([counts["train"][i] for i in range(len(CLASSES))], dtype=torch.float)
+    train_counts = Counter(label for _, label, _ in splits["train"])
+    class_count = torch.tensor([train_counts[i] for i in range(len(CLASSES))], dtype=torch.float)
     criterion = nn.CrossEntropyLoss(weight=(class_count.sum() / (len(CLASSES) * class_count)).to(device))
     optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4, weight_decay=1e-4)
     best, history = -1.0, []
@@ -153,6 +186,8 @@ def main():
     model.load_state_dict(checkpoint["state_dict"])
     report = {"schema": "prms.paper_four_stage_baseline.v1", "classes": CLASSES, "seed": args.seed,
               "device": str(device), "counts": {key: dict(value) for key, value in counts.items()},
+              "supplementary_train_counts": dict(supplementary_counts),
+              "train_counts_including_supplementary": dict(train_counts),
               "groups": {key: len({item[2] for item in value}) for key, value in splits.items()},
               "history": history, "validation": evaluate(model, loaders["val"], device), "test": evaluate(model, loaders["test"], device)}
     (args.output / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")

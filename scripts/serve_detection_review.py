@@ -90,9 +90,13 @@ class ReviewStore:
             return output
         for line_number, line in enumerate(label.read_text(encoding="utf-8").splitlines(), 1):
             fields = line.split()
-            if len(fields) != 5 or fields[0] != "0":
+            # Initial predictions may contain a sixth trailing confidence value
+            # because they were exported with Ultralytics ``save_conf=True``.
+            # The reviewer edits geometry only; saving normalizes to 5-column
+            # training labels.
+            if len(fields) not in {5, 6} or fields[0] != "0":
                 raise ValueError(f"invalid YOLO label at {label.name}:{line_number}")
-            x, y, width, height = map(float, fields[1:])
+            x, y, width, height = map(float, fields[1:5])
             output.append({"x": x, "y": y, "w": width, "h": height})
         return output
 

@@ -191,7 +191,7 @@ def handler_factory(store: ReviewStore):
                     self.json_response(HTTPStatus.OK, {"items": items, "progress": {"total": len(items), "approved": approved, "pending": len(items) - approved}})
                     return
                 if path.startswith("/api/image/"):
-                    image, _ = store.assert_name(unquote(path.removeprefix("/api/image/")))
+                    image, _ = store.assert_name(unquote(path[len("/api/image/") :]))
                     body = image.read_bytes()
                     self.send_response(HTTPStatus.OK)
                     self.send_header("Content-Type", mimetypes.guess_type(image.name)[0] or "application/octet-stream")
@@ -213,7 +213,7 @@ def handler_factory(store: ReviewStore):
                 if size <= 0 or size > 1_000_000:
                     raise ValueError("invalid request size")
                 payload = json.loads(self.rfile.read(size))
-                item = store.save(unquote(path.removeprefix("/api/item/")), payload.get("boxes"), payload.get("audit_status"))
+                item = store.save(unquote(path[len("/api/item/") :]), payload.get("boxes"), payload.get("audit_status"))
                 self.json_response(HTTPStatus.OK, {"item": item})
             except (FileNotFoundError, ValueError, json.JSONDecodeError) as error:
                 self.json_response(HTTPStatus.BAD_REQUEST, {"error": str(error)})

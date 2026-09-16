@@ -29,6 +29,8 @@ The included classifier weights and archived `demo/` output predate this Green G
 
 For reviewing an external image collection, [SAM 2 box-to-mask preparation](docs/sam2_remote_setup.md) converts existing tomato boxes into mask and crop candidates. [Grounding DINO → SAM 2](docs/groundingdino_sam2_remote_pipeline.md) can additionally propose tomato boxes from the text prompt `tomato.` before creating those candidates. Both workflows are deliberately review-only: candidate records have no maturity label and cannot be used as performance evidence until an annotator verifies them.
 
+The manuscript-facing detector is YOLOv8. Grounding DINO may be evaluated only as a separately declared **zero-shot detector baseline** on the identical frozen validation split; SAM 2 is not part of that box-detection comparison. The annotation UI, split rules, metric table, and comparison protocol are in [docs/yolov8_experiment_protocol.md](docs/yolov8_experiment_protocol.md).
+
 ## Fastest path: desktop operation window
 
 The completed reviewer fixes, current result locations, and exact rerun commands are recorded in [completion_20260914.md](docs/completion_20260914.md). The corrected local run retains 85 legacy observations; the original archived example retains 68. These are different runs, not accuracy measurements.
@@ -155,8 +157,8 @@ The repository includes a crop-generation tool and a thin Ultralytics training e
 
 ```powershell
 python scripts/prepare_green_gem_classifier.py --annotations labels.csv --images data/source_views --output data/training/green_gem_classifier
-python scripts/train_green_gem.py --task detect --data training/green_gem_detector.yaml --model yolo11s.pt --imgsz 1280 --epochs 160
-python scripts/train_green_gem.py --task classify --data data/training/green_gem_classifier --model yolo11s-cls.pt --imgsz 224 --epochs 120
+python scripts/train_green_gem.py --task detect --data training/green_gem_detector.yaml --model yolov8n.pt --imgsz 1280 --epochs 160
+python scripts/train_green_gem.py --task classify --data data/training/green_gem_classifier --model yolov8n-cls.pt --imgsz 224 --epochs 120
 ```
 
 Read [docs/green_gem_training.md](docs/green_gem_training.md) before preparing labels. It defines the four classes, route/date split rule, external-data licence boundary, and deployment evidence required for a replacement model.

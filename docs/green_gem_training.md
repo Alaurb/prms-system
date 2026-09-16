@@ -35,7 +35,7 @@ names:
 Train it with:
 
 ```powershell
-python scripts/train_green_gem.py --task detect --data training/green_gem_detector.yaml --model yolo11s.pt --imgsz 1280 --epochs 160
+python scripts/train_green_gem.py --task detect --data training/green_gem_detector.yaml --model yolov8n.pt --imgsz 1280 --epochs 160
 ```
 
 ## Classifier dataset
@@ -63,7 +63,7 @@ The preparation tool checks panorama/group/date/route and image hashes for cross
 Current preparation validates all rows before creating files and records crop hashes in a versioned manifest. The training command requires this manifest and checks the actual crop files against it. Rebuild a new dataset directory when changing labels or crops. Ungradable or unresolved fruit must be adjudicated before entering training; it is not an `other` example.
 
 ```powershell
-python scripts/train_green_gem.py --task classify --data data/training/green_gem_classifier --model yolo11s-cls.pt --imgsz 224 --epochs 120
+python scripts/train_green_gem.py --task classify --data data/training/green_gem_classifier --model yolov8n-cls.pt --imgsz 224 --epochs 120
 ```
 
 The classifier's folder names are its deployed class names. Do not rename them after training. Copy only the resulting `best.pt` weights into `models/` and point the desktop window to the detector and classifier files.

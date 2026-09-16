@@ -14,7 +14,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Train a Green Gem tomato model")
     parser.add_argument("--task", required=True, choices=("detect", "classify"))
     parser.add_argument("--data", required=True, help="YOLO detect YAML or classification dataset root")
-    parser.add_argument("--model", default="yolo11s.pt", help="Pretrained Ultralytics model")
+    parser.add_argument("--model", default="yolov8n.pt", help="Pretrained Ultralytics YOLOv8 model")
     parser.add_argument("--epochs", type=int, default=120)
     parser.add_argument("--imgsz", type=int, default=960)
     parser.add_argument("--batch", type=int, default=-1, help="-1 selects automatic batch size")
